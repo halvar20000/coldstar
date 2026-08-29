@@ -17,11 +17,29 @@ func run(p: PlayerShip) -> void:
 		await get_tree().physics_frame
 	print("--- pad test (synthetic Xbox-layout events) ---")
 
+	# Pitch is a preference, so both settings get tested rather than whichever
+	# one happens to be saved on this machine.
+	var saved_invert := Settings.invert_pitch
+
+	Settings.set_invert_pitch(false)
 	await _axis(JOY_AXIS_LEFT_Y, 1.0)
-	_check("stick back  -> nose up", player.flight.pitch_cmd > 0.5, player.flight.pitch_cmd)
+	_check("normal: stick back -> nose down", player.flight.pitch_cmd < -0.5, player.flight.pitch_cmd)
 	await _axis(JOY_AXIS_LEFT_Y, -1.0)
-	_check("stick fwd   -> nose down", player.flight.pitch_cmd < -0.5, player.flight.pitch_cmd)
+	_check("normal: stick fwd  -> nose up", player.flight.pitch_cmd > 0.5, player.flight.pitch_cmd)
+
+	Settings.set_invert_pitch(true)
+	await _axis(JOY_AXIS_LEFT_Y, 1.0)
+	_check("inverted: stick back -> nose up", player.flight.pitch_cmd > 0.5, player.flight.pitch_cmd)
+	await _axis(JOY_AXIS_LEFT_Y, -1.0)
+	_check("inverted: stick fwd  -> nose down", player.flight.pitch_cmd < -0.5, player.flight.pitch_cmd)
 	await _axis(JOY_AXIS_LEFT_Y, 0.0)
+
+	# The whole point is that it survives a restart.
+	Settings.set_invert_pitch(true)
+	Settings.invert_pitch = false
+	Settings.load_settings()
+	_check("preference survives a reload", Settings.invert_pitch, Settings.invert_pitch)
+	Settings.set_invert_pitch(saved_invert)
 
 	await _axis(JOY_AXIS_LEFT_X, 1.0)
 	_check("stick right -> roll right", player.flight.roll_cmd > 0.5, player.flight.roll_cmd)

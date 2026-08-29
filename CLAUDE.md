@@ -53,6 +53,16 @@ pipeline starts.
 - Headless runs render nothing, so `_draw` bugs will not show up there. Take a
   screenshot with `--shot=` to check anything visual.
 
+## Preferences vs tuning
+
+`Settings` (autoload) holds what belongs to the *person*: pitch inversion, saved
+to `user://settings.json`. The F3 panel's flight numbers belong to the *craft*
+and are deliberately not saved. Don't move one into the other.
+
+The pitch actions are named `pitch_back` / `pitch_forward` after the stick
+direction, never after the result — which direction raises the nose is exactly
+what the preference decides.
+
 ## Where the numbers live
 
 `data/lancet.tres` and `data/vex.tres` (`ShipProfile`). The F3 panel edits the

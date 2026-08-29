@@ -198,6 +198,7 @@ func _launch() -> void:
 	runner.announce.connect(func(text: String, secs: float) -> void: hud.message(text, secs))
 	player.damaged.connect(func(_s, _a, _f) -> void: hud.flash_damage())
 	player.wing_command.connect(func(cmd: AIFighter.WingOrder) -> void: runner.command_wing(cmd, player))
+	player.invert_toggled.connect(_announce_pitch)
 
 	starfield = Starfield.new()
 	add_child(starfield)
@@ -307,10 +308,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		_set_view(false)
 	elif event.is_action("view_toggle"):
 		_set_view(not _cockpit_view)
+	elif event.is_action("toggle_invert"):
+		_announce_pitch()
 	elif event.is_action("view_tuning"):
 		tuning.visible = not tuning.visible
 	elif event.is_action("scenario_reset"):
 		_launch()
+
+## Say out loud what the setting now is. A silent inversion toggle is how you
+## end up flying a whole mission fighting your own controls.
+func _announce_pitch() -> void:
+	Settings.toggle_invert_pitch()
+	if hud != null:
+		hud.message("PITCH: %s" % Settings.pitch_label(), 3.0)
 
 func _set_view(cockpit_view: bool) -> void:
 	_cockpit_view = cockpit_view

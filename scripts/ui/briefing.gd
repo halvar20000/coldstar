@@ -60,16 +60,23 @@ func _process(_dt: float) -> void:
 	size = get_viewport_rect().size
 	queue_redraw()
 
-func _unhandled_key_input(event: InputEvent) -> void:
+## Everything here works from the pad as well as the keyboard: A launches,
+## B continues, Y flips the pitch setting. Nobody should have to put the
+## controller down to get out of the briefing.
+func _unhandled_input(event: InputEvent) -> void:
 	if not visible or not event.is_pressed() or event.is_echo():
 		return
 	var key := event as InputEventKey
-	if key == null:
-		return
-	if key.physical_keycode == KEY_SPACE or key.physical_keycode == KEY_ENTER:
+	var code := key.physical_keycode if key != null else 0
+
+	if code == KEY_SPACE or code == KEY_ENTER or event.is_action_pressed("fire"):
 		launch_requested.emit()
 		get_viewport().set_input_as_handled()
-	elif mode == Mode.DEBRIEF and key.physical_keycode == KEY_N:
+	elif code == KEY_I or event.is_action_pressed("target_nearest"):
+		Settings.toggle_invert_pitch()
+		queue_redraw()
+		get_viewport().set_input_as_handled()
+	elif mode == Mode.DEBRIEF and (code == KEY_N or event.is_action_pressed("target_next")):
 		next_mission_requested.emit()
 		get_viewport().set_input_as_handled()
 
@@ -132,6 +139,9 @@ func _draw() -> void:
 		y += 26
 
 	draw_line(Vector2(x, y - 4), Vector2(x + w, y - 4), Color(GREEN, 0.25), 1.0)
+	_text(Vector2(x, y + 18), "PITCH   %s        I  or  Y on the pad — change" % Settings.pitch_label(),
+		Color(0.86, 0.90, 0.92), 14)
+	y += 24
 	var footer := "SPACE — launch"
 	if debrief:
 		footer = "SPACE — fly it again      N — accept and continue      ESC — quit"

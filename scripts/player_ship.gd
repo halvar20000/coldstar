@@ -5,10 +5,10 @@ extends Ship
 
 signal target_changed(t: Ship)
 signal wing_command(cmd: AIFighter.WingOrder)
+signal invert_toggled()
 
 var target: Ship = null
 var throttle_input := 0.66
-var invert_pitch := true
 ## When true the stick is ignored and flight commands come from outside — used
 ## by the headless self-test, and later by autopilot / cutscene flight.
 var autopilot := false
@@ -38,10 +38,9 @@ func _physics_process(dt: float) -> void:
 const PAD_THROTTLE_RATE := 0.55    # full sweep in a bit under two seconds
 
 func _read_stick(dt: float) -> void:
-	var pitch := Input.get_action_strength("pitch_up") - Input.get_action_strength("pitch_down")
-	if not invert_pitch:
-		pitch = -pitch
-	flight.pitch_cmd = pitch
+	# Positive means "stick pulled back". The preference decides what that does.
+	var stick_back := Input.get_action_strength("pitch_back") - Input.get_action_strength("pitch_forward")
+	flight.pitch_cmd = stick_back if Settings.invert_pitch else -stick_back
 	flight.roll_cmd = Input.get_action_strength("roll_right") - Input.get_action_strength("roll_left")
 	flight.yaw_cmd = Input.get_action_strength("yaw_right") - Input.get_action_strength("yaw_left")
 	afterburner = Input.is_action_pressed("afterburner") and ab_fuel > 0.0
@@ -126,6 +125,11 @@ func _pad_wing_command(event: InputEvent) -> void:
 	if cmd >= 0:
 		_wing_menu_used = true
 		wing_command.emit(cmd as AIFighter.WingOrder)
+		return
+	# LB + d-pad up: the pitch preference without reaching for the keyboard.
+	if event.is_action("laser_up"):
+		_wing_menu_used = true
+		invert_toggled.emit()
 
 func _set_target(t: Ship) -> void:
 	target = t

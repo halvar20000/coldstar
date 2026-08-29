@@ -16,10 +16,11 @@ const MOUSE := "mouse"
 ## rudder, right stick Y is the throttle lever, the d-pad is the reactor.
 const BINDINGS := {
 	# --- flight ---
-	# Pitch is inverted by default (pull back = nose up), the sim convention.
-	# Flip it live in the tuning panel (F3) if you'd rather fly nose-follows-key.
-	"pitch_up":    [[K, KEY_DOWN],  [AXIS, JOY_AXIS_LEFT_Y, 1.0]],
-	"pitch_down":  [[K, KEY_UP],    [AXIS, JOY_AXIS_LEFT_Y, -1.0]],
+	# Named for the stick direction, not the result. Whether pulling back raises
+	# or lowers the nose is Settings.invert_pitch: saved between sessions, and
+	# toggled with I (briefing or in flight) or from the F3 panel.
+	"pitch_back":    [[K, KEY_DOWN],  [AXIS, JOY_AXIS_LEFT_Y, 1.0]],
+	"pitch_forward": [[K, KEY_UP],    [AXIS, JOY_AXIS_LEFT_Y, -1.0]],
 	"roll_left":   [[K, KEY_LEFT],  [AXIS, JOY_AXIS_LEFT_X, -1.0]],
 	"roll_right":  [[K, KEY_RIGHT], [AXIS, JOY_AXIS_LEFT_X, 1.0]],
 	"yaw_left":    [[K, KEY_COMMA], [AXIS, JOY_AXIS_RIGHT_X, -1.0]],
@@ -72,6 +73,7 @@ const BINDINGS := {
 	"view_chase":   [[K, KEY_F2]],
 	"view_toggle":  [[BTN, JOY_BUTTON_BACK]],
 	"view_tuning":  [[K, KEY_F3]],
+	"toggle_invert":[[K, KEY_I]],
 	"scenario_reset":[[K, KEY_F5], [BTN, JOY_BUTTON_START]],
 	"quit":         [[K, KEY_ESCAPE]],
 }

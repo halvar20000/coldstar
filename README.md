@@ -75,7 +75,7 @@ Or open the folder in Godot 4.7 and press F5.
 | | |
 |---|---|
 | Arrow ←→ | roll |
-| Arrow ↑↓ | pitch (inverted by default — pull back for nose up; flip it in F3) |
+| Arrow ↑↓ | pitch — up is nose up by default; press `I` to invert |
 | `,` `.` | rudder yaw |
 | `-` `=` | throttle down / up |
 | `1` `2` `3` `4` | throttle 0 / 33 / 66 / 100% |
@@ -88,6 +88,7 @@ Or open the folder in Godot 4.7 and press F5.
 | `F` | shield config: balanced / forward / aft |
 | `R` `T` `G` | target nearest / cycle / whatever is in the gunsight |
 | F1 F2 | cockpit / chase view |
+| `I` | invert pitch (saved between sessions; works in flight and on the briefing) |
 | F3 | flight tuning panel |
 | Space | launch from briefing / fly again from debrief |
 | N | next mission (debrief only) |
@@ -104,7 +105,7 @@ Or open the folder in Godot 4.7 and press F5.
 | A | fire |
 | X | cycle fire link |
 | Y / B / RB | target nearest / cycle / gunsight |
-| **Hold LB** | wing orders: A attack my target, Y cover me, X form up, B break and engage |
+| **Hold LB** | wing orders: A attack my target, Y cover me, X form up, B break and engage; d-pad ↑ inverts pitch |
 | D-pad ↑↓ | laser recharge up / down |
 | D-pad ←→ | shield recharge down / up |
 | LB (tap) | shunt laser energy into shields |
@@ -112,7 +113,15 @@ Or open the folder in Godot 4.7 and press F5.
 | View | toggle cockpit ↔ chase |
 | Menu | reset the engagement |
 
-A HOTAS works through the same axes (stick roll/pitch, triggers as rudder), but
+On the briefing screen the pad drives everything: **A** launches, **B** continues
+at the debrief, **Y** flips the pitch setting.
+
+**Pitch direction is a saved preference, not a convention.** It defaults to
+push-up-for-nose-up, which is what most people expect; press `I` (or **Y** on the
+briefing screen, or LB + d-pad up in flight) for the sim-standard pull-back-for-
+nose-up. The setting lives in `user://settings.json` and survives restarts.
+
+A HOTAS works through the same axes (stick roll/pitch, right stick as rudder), but
 device enumeration order is not stable across platforms — a proper binding screen
 is on the list before this leaves the prototype stage. All bindings live in
 `scripts/input_setup.gd`, built at runtime, not baked into `project.godot`.

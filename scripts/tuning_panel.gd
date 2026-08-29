@@ -29,13 +29,14 @@ func setup(p: PlayerShip) -> void:
 	_slider(box, "Inertia response", "inertia_response", 0.3, 14.0)
 
 	var inv := CheckBox.new()
-	inv.text = "Invert pitch (pull back = nose up)"
-	inv.button_pressed = player.invert_pitch
-	inv.toggled.connect(func(v: bool) -> void: player.invert_pitch = v)
+	inv.text = "Invert pitch (pull back = nose up)   [I]"
+	inv.button_pressed = Settings.invert_pitch
+	inv.toggled.connect(func(v: bool) -> void: Settings.set_invert_pitch(v))
+	Settings.changed.connect(func() -> void: inv.button_pressed = Settings.invert_pitch)
 	box.add_child(inv)
 
 	var hint := Label.new()
-	hint.text = "Changes apply immediately and are not saved.\nCopy good numbers into data/lancet.tres."
+	hint.text = "Flight numbers apply immediately and are not saved.\nCopy good ones into data/lancet.tres. Pitch inversion IS saved."
 	hint.add_theme_font_size_override("font_size", 11)
 	box.add_child(hint)
 	visible = false
