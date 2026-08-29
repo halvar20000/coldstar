@@ -15,6 +15,7 @@ yaw_rate = 34.0
 roll_rate = 140.0
 control_response = 5.5
 inertia_response = 7.0
+ab_fuel = 60.0
 hull_max = 55.0
 shield_max = 0.0
 shield_recharge = 0.0

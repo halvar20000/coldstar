@@ -22,6 +22,9 @@ var order_target_group := ""
 var waypoints: Array[Vector3] = []
 var depart_at_end := true
 var escort_anchor: Ship = null        ## lead craft of the group we're covering
+var pilot: Pilot = null               ## set for the player's own wing
+## A direct order from the player outranks the mission's standing order.
+var commanded_target: Ship = null
 
 var target: Ship = null
 var state: State = State.SEEK
@@ -34,7 +37,7 @@ var _wp := 0
 
 # Ranges in metres.
 const ATTACK_RANGE := 900.0      # start the run
-const OPEN_FIRE_RANGE := 650.0   # squeeze the trigger
+const OPEN_FIRE_RANGE := 750.0   # squeeze the trigger
 const BREAK_RANGE := 180.0       # too close, disengage
 const EXTEND_TO := 1100.0        # separation to regain before turning back
 const WAYPOINT_REACHED := 260.0
@@ -83,6 +86,13 @@ func _update_target() -> void:
 		# Cover the transport, not yourself: threats are measured from it.
 		origin = escort_anchor.global_position
 
+	# A direct order beats everything, right up until the target dies.
+	if commanded_target != null:
+		if is_instance_valid(commanded_target) and not commanded_target.dead:
+			target = commanded_target
+			return
+		commanded_target = null
+
 	var best: Ship = null
 	var best_score := INF
 	for s in Combat.enemies_of(faction):
@@ -116,19 +126,25 @@ func _fight(dt: float) -> void:
 		State.ATTACK:
 			var aim := _lead_point()
 			_fly_toward(aim, 0.9, dt)
-			if dist < OPEN_FIRE_RANGE and _on_target(aim, 4.0) and randf() < 0.6 + skill * 0.4:
+			# 4 degrees was too tight: with everyone turning hard, nobody ever
+			# took a shot and fights ground to a stalemate instead of resolving.
+			if dist < OPEN_FIRE_RANGE and _on_target(aim, 6.5) and randf() < 0.6 + skill * 0.4:
 				fire()
 			if dist < BREAK_RANGE:
 				_start_break()
 			elif dist > ATTACK_RANGE * 1.4:
 				_set_state(State.PURSUE)
 		State.BREAK:
+			afterburner = false
 			# Hard turn off the attack axis so the overshoot doesn't become a
 			# collision, holding the break vector rather than re-aiming.
 			_fly_toward(global_position + _break_dir * 500.0, 1.0, dt)
 			if _state_time > 1.5 + (1.0 - skill) * 1.2 or dist > 500.0:
 				_set_state(State.EXTEND)
 		State.EXTEND:
+			# Burner on the way out: this is exactly the moment a real pilot
+			# spends it, and it makes a break look like an escape.
+			afterburner = ab_pct() > 0.35
 			# Run straight out to regain separation. Without this the fight
 			# collapses into a 200 m furball where nobody can line up a shot.
 			var away := (global_position - target.global_position).normalized()
@@ -208,6 +224,37 @@ func _on_target(point: Vector3, degrees: float) -> bool:
 
 func _fly_toward(point: Vector3, throttle: float, _dt: float) -> void:
 	Steering.fly_toward(self, flight, point, throttle, 0.4 + skill * 0.6, _jink)
+
+## Player wing commands. Kept deliberately small — four orders you can give with
+## one button while flying, which is as much as anyone uses in a dogfight.
+enum WingOrder { ATTACK_TARGET, COVER_ME, FORM_UP, BREAK_ENGAGE }
+
+func receive_order(cmd: WingOrder, leader: Ship, leader_target: Ship) -> String:
+	match cmd:
+		WingOrder.ATTACK_TARGET:
+			if leader_target == null or not is_instance_valid(leader_target) or leader_target.dead:
+				return "negative, no target"
+			commanded_target = leader_target
+			order = CraftGroup.Order.ATTACK
+			escort_anchor = null
+			return "engaging your target"
+		WingOrder.COVER_ME:
+			commanded_target = null
+			order = CraftGroup.Order.ESCORT
+			escort_anchor = leader
+			return "on your wing"
+		WingOrder.FORM_UP:
+			commanded_target = null
+			order = CraftGroup.Order.ESCORT
+			escort_anchor = leader
+			waypoints.clear()
+			return "forming up"
+		WingOrder.BREAK_ENGAGE:
+			commanded_target = null
+			order = CraftGroup.Order.PATROL
+			escort_anchor = null
+			return "breaking off"
+	return "copy"
 
 func state_name() -> String:
 	return STATE_NAMES[state]

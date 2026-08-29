@@ -19,6 +19,7 @@ var throttle := 0.0     # 0..1
 var speed := 0.0
 var velocity := Vector3.ZERO
 var engine_factor := 1.0    # from the power system
+var afterburner := false
 
 var _pitch_rate := 0.0
 var _yaw_rate := 0.0
@@ -29,7 +30,8 @@ func _init(p_profile: ShipProfile, p_body: Node3D) -> void:
 	body = p_body
 
 func max_speed() -> float:
-	return profile.rated_speed * engine_factor
+	var top := profile.rated_speed * engine_factor
+	return top * profile.ab_speed_mult if afterburner else top
 
 func step(dt: float) -> void:
 	var k := clampf(dt * profile.control_response, 0.0, 1.0)
@@ -43,8 +45,12 @@ func step(dt: float) -> void:
 	body.rotate_object_local(Vector3.FORWARD, deg_to_rad(_roll_rate) * dt)
 	body.transform.basis = body.transform.basis.orthonormalized()
 
-	var target_speed := clampf(throttle, 0.0, 1.0) * max_speed()
+	# Lighting the burner overrides the throttle lever: it is a commitment, not
+	# a setting, and it goes to full whatever the lever says.
+	var target_speed := max_speed() if afterburner else clampf(throttle, 0.0, 1.0) * max_speed()
 	var rate := profile.throttle_accel if target_speed > speed else profile.throttle_decel
+	if afterburner:
+		rate *= profile.ab_accel_mult
 	speed = move_toward(speed, target_speed, rate * dt)
 
 	var forward := -body.global_transform.basis.z

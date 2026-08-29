@@ -55,7 +55,8 @@ func _draw() -> void:
 	_draw_throttle(vp)
 	_draw_cmd(vp)
 	_draw_radar(vp)
-	_draw_objectives(vp)
+	var next_y := _draw_objectives(vp)
+	_draw_wing(vp, next_y)
 	if _damage_flash > 0.0:
 		draw_rect(Rect2(Vector2.ZERO, vp), Color(1.0, 0.2, 0.15, _damage_flash * 0.22))
 	if _msg_time > 0.0:
@@ -186,6 +187,18 @@ func _draw_throttle(vp: Vector2) -> void:
 	var tx := x + w * player.throttle_input
 	draw_line(Vector2(tx, y + 3), Vector2(tx, y + 19), AMBER, 2.0)
 
+	# Afterburner: a spend-it bar, not a state light. Empty flashes so you learn
+	# to feel the tank rather than read it.
+	if player.profile.ab_fuel > 0.0:
+		var abf := player.ab_pct()
+		var lit := player.afterburner
+		var col := Color(1.0, 0.55, 0.25) if lit else Color(0.9, 0.6, 0.35, 0.75)
+		if abf <= 0.02:
+			col = Color(RED, 0.5 + 0.5 * absf(sin(Time.get_ticks_msec() * 0.006)))
+		draw_rect(Rect2(x, y + 22, w, 5), Color(col, 0.14), true)
+		draw_rect(Rect2(x, y + 22, w * abf, 5), col, true)
+		_text(Vector2(x + w + 8, y + 27), "AB", col, 11)
+
 func _draw_cmd(vp: Vector2) -> void:
 	var w := 250.0
 	var x := vp.x * 0.5 - w * 0.5
@@ -260,9 +273,9 @@ func _draw_debug(vp: Vector2) -> void:
 ## The objectives list stays on screen the whole flight. In a mission-driven sim
 ## the single most common question is "what am I supposed to be doing", and
 ## making the pilot pause to remember is a design failure.
-func _draw_objectives(vp: Vector2) -> void:
+func _draw_objectives(vp: Vector2) -> float:
 	if runner == null or runner.mission == null:
-		return
+		return 26.0
 	var x := 22.0
 	var y := 26.0
 	_text(Vector2(x, y), "OBJECTIVES", Color(DIM, 0.75), 12)
@@ -282,6 +295,33 @@ func _draw_objectives(vp: Vector2) -> void:
 	var mins := int(runner.elapsed) / 60
 	var secs := int(runner.elapsed) % 60
 	_text(Vector2(x, y + 6), "T+%02d:%02d" % [mins, secs], Color(DIM, 0.55), 12)
+	return y + 30.0
+
+## Your wing, by name. Seeing "Rell 41%" is the difference between a wingman
+## you notice dying and one you do not.
+func _draw_wing(_vp: Vector2, top: float) -> void:
+	if runner == null:
+		return
+	var wing := runner.wingmen()
+	if wing.is_empty():
+		return
+	var x := 22.0
+	var y := top + 12.0
+	_text(Vector2(x, y), "WING", Color(DIM, 0.75), 12)
+	y += 18
+	for w in wing:
+		var frac := w.hull / w.profile.hull_max
+		var col := GREEN if frac > 0.4 else RED
+		var who: String = w.pilot.callsign if w.pilot != null else w.name
+		_text(Vector2(x, y), who, col, 13)
+		draw_rect(Rect2(x + 52, y - 9, 60, 8), Color(col, 0.15), true)
+		draw_rect(Rect2(x + 52, y - 9, 60.0 * clampf(frac, 0, 1), 8), col, true)
+		_text(Vector2(x + 120, y), w.state_name(), Color(DIM, 0.8), 11)
+		y += 18
+	if player != null and player.wing_menu_open:
+		_text(Vector2(x, y + 10), "WING ORDERS", AMBER, 13)
+		_text(Vector2(x, y + 28), "A attack my target    Y cover me", Color(DIM, 0.9), 12)
+		_text(Vector2(x, y + 44), "X form up             B break and engage", Color(DIM, 0.9), 12)
 
 # --- primitives ---------------------------------------------------------
 

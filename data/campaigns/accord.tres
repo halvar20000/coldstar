@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="Campaign" format=3]
+
+[ext_resource type="Script" path="res://scripts/mission/campaign_node.gd" id="1_dmhdt"]
+[ext_resource type="Script" path="res://scripts/mission/campaign.gd" id="2_kppla"]
+
+[sub_resource type="Resource" id="Resource_7rqoh"]
+script = ExtResource("1_dmhdt")
+id = "sweep"
+mission_path = "res://data/missions/01_intercept.tres"
+on_complete = "convoy"
+on_fail = "regroup"
+
+[sub_resource type="Resource" id="Resource_3812c"]
+script = ExtResource("1_dmhdt")
+id = "convoy"
+mission_path = "res://data/missions/02_escort.tres"
+on_fail = "regroup"
+
+[sub_resource type="Resource" id="Resource_hq065"]
+script = ExtResource("1_dmhdt")
+id = "regroup"
+mission_path = "res://data/missions/03_regroup.tres"
+on_complete = "convoy"
+
+[resource]
+script = ExtResource("2_kppla")
+title = "Tessaly Front"
+start_node = "sweep"
+nodes = Array[ExtResource("1_dmhdt")]([SubResource("Resource_7rqoh"), SubResource("Resource_3812c"), SubResource("Resource_hq065")])

@@ -23,6 +23,15 @@ func setup(p_from: Vector3, p_dir: Vector3, p_speed: float, p_damage: float, p_o
 	look_at(p_from + p_dir, Vector3.UP)
 
 func _physics_process(dt: float) -> void:
+	# Bolts outlive their shooter. Once the shooter is gone the reference must be
+	# dropped, or take_hit() is called with a freed object and the hit is thrown
+	# away — a dying pilot's last shots would pass straight through the target.
+	#
+	# No `!= null` guard here: in Godot a freed object compares EQUAL to null,
+	# so `owner_ship != null and not is_instance_valid(owner_ship)` short-circuits
+	# to false and never clears the dangling reference. is_instance_valid alone.
+	if not is_instance_valid(owner_ship):
+		owner_ship = null
 	_age += dt
 	if _age > life:
 		queue_free()

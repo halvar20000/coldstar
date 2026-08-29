@@ -41,6 +41,15 @@ pipeline starts.
 - SelfTest runs the sim at 4x by raising `physics_ticks_per_second` to 240 *and*
   `time_scale` to 4 together, which keeps the 1/60 s delta the game actually uses.
   Changing only time_scale would change the physics step and the results with it.
+- **A freed object compares EQUAL to null in Godot.** `if obj != null and not
+  is_instance_valid(obj)` short-circuits to false and never clears the dangling
+  reference — use `is_instance_valid()` alone. This cost real damage: bolts whose
+  shooter had died were failing their typed-argument check and their hits were
+  silently thrown away.
+- `MissionRunner.roster` must be assigned *before* `setup()`, because setup spawns
+  the START groups and a roster flight draws its pilots at spawn time.
+- LB on the pad is a held modifier for wing orders, so PlayerShip handles its
+  press and release *before* the press-only guard in `_unhandled_input`.
 - Headless runs render nothing, so `_draw` bugs will not show up there. Take a
   screenshot with `--shot=` to check anything visual.
 

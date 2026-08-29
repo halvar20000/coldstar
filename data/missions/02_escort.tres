@@ -2,9 +2,9 @@
 
 [ext_resource type="Script" path="res://scripts/mission/mission_goal.gd" id="1_vsbkv"]
 [ext_resource type="Script" path="res://scripts/mission/craft_group.gd" id="2_3hogs"]
-[ext_resource type="Resource" path="res://data/hauler.tres" id="3_k085t"]
-[ext_resource type="Resource" path="res://data/vex.tres" id="4_lfqgr"]
-[ext_resource type="Resource" path="res://data/lancet.tres" id="5_44pk2"]
+[ext_resource type="Resource" path="res://data/lancet.tres" id="3_k085t"]
+[ext_resource type="Resource" path="res://data/hauler.tres" id="4_lfqgr"]
+[ext_resource type="Resource" path="res://data/vex.tres" id="5_44pk2"]
 [ext_resource type="Script" path="res://scripts/mission/mission.gd" id="6_xt6jo"]
 
 [sub_resource type="Resource" id="Resource_hc4kn"]
@@ -33,28 +33,39 @@ group_id = "ambush"
 
 [sub_resource type="Resource" id="Resource_ujdql"]
 script = ExtResource("2_3hogs")
-id = "convoy"
+id = "wing"
 profile = ExtResource("3_k085t")
+count = 2
+use_roster = true
+spawn_point = Vector3(300, 40, 960)
+spawn_spread = 90.0
+order = 3
+order_target = "player"
+
+[sub_resource type="Resource" id="Resource_5q417"]
+script = ExtResource("2_3hogs")
+id = "convoy"
+profile = ExtResource("4_lfqgr")
 count = 1
 spawn_point = Vector3(0, 0, 600)
 facing_point = Vector3(0, 0, -4000)
 order = 4
 waypoints = Array[Vector3]([Vector3(0, 0, -1400), Vector3(600, 100, -3200), Vector3(600, 100, -5200)])
 
-[sub_resource type="Resource" id="Resource_5q417"]
+[sub_resource type="Resource" id="Resource_j3vrn"]
 script = ExtResource("2_3hogs")
 id = "picket"
-profile = ExtResource("4_lfqgr")
+profile = ExtResource("5_44pk2")
 count = 2
 skill = 0.55
 spawn_point = Vector3(-1200, 200, -2600)
 order = 2
 order_target = "convoy"
 
-[sub_resource type="Resource" id="Resource_j3vrn"]
+[sub_resource type="Resource" id="Resource_fssf4"]
 script = ExtResource("2_3hogs")
 id = "ambush"
-profile = ExtResource("4_lfqgr")
+profile = ExtResource("5_44pk2")
 count = 2
 skill = 0.75
 spawn_point = Vector3(1600, -260, -4200)
@@ -76,9 +87,10 @@ not survive a single unopposed pass. The first flight is already
 out there; a second will jump in once you are committed.
 
 Get the hauler to the jump point and you have done your job."
-player_profile = ExtResource("5_44pk2")
+player_profile = ExtResource("3_k085t")
 player_start = Vector3(180, 60, 900)
 player_facing = Vector3(0, 0, -1500)
-groups = Array[ExtResource("2_3hogs")]([SubResource("Resource_ujdql"), SubResource("Resource_5q417"), SubResource("Resource_j3vrn")])
+groups = Array[ExtResource("2_3hogs")]([SubResource("Resource_ujdql"), SubResource("Resource_5q417"), SubResource("Resource_j3vrn"), SubResource("Resource_fssf4")])
+wing_group = "wing"
 goals = Array[ExtResource("1_vsbkv")]([SubResource("Resource_hc4kn"), SubResource("Resource_eduns"), SubResource("Resource_fbv15"), SubResource("Resource_ogeno")])
 time_limit = 420.0

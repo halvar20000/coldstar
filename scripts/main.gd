@@ -3,13 +3,21 @@ extends Node3D
 ## everything that used to be hardcoded here now lives in a .tres under
 ## data/missions, which is the point of M1.
 
+const CAMPAIGN_PATH := "res://data/campaigns/accord.tres"
+## Direct mission access for testing (--mission=N); the campaign decides the
+## order in normal play.
 const MISSIONS := [
 	"res://data/missions/01_intercept.tres",
 	"res://data/missions/02_escort.tres",
+	"res://data/missions/03_regroup.tres",
 ]
 
 var mission: Mission
 var mission_index := 0
+var campaign: Campaign
+var state: CampaignState
+var campaign_mode := true
+var _last_result_complete := false
 var runner: MissionRunner
 var player: PlayerShip
 var hud: HUD
@@ -41,14 +49,24 @@ func _ready() -> void:
 	add_child(ui_layer)
 	briefing = BriefingScreen.new()
 	ui_layer.add_child(briefing)
-	briefing.launch_requested.connect(_launch)
+	briefing.launch_requested.connect(func() -> void:
+		if briefing.mode == BriefingScreen.Mode.CAMPAIGN_END:
+			_restart_campaign()
+		else:
+			_launch())
 	briefing.next_mission_requested.connect(_next_mission)
-	_load_mission(mission_index)
+	campaign = load(CAMPAIGN_PATH) as Campaign
+	if campaign_mode:
+		state = CampaignState.load_or_new(campaign)
+		_load_campaign_mission()
+	else:
+		state = CampaignState.fresh(campaign)
+		_load_mission(mission_index)
 	if _skip_briefing:
 		_launch()
 	else:
 		get_tree().paused = true
-		briefing.show_briefing(mission)
+		briefing.show_briefing(mission, state.roster)
 
 func _parse_cmdline() -> void:
 	for a in OS.get_cmdline_user_args():
@@ -71,8 +89,35 @@ func _parse_cmdline() -> void:
 		elif a.begins_with("--mission="):
 			var v := a.split("=")[-1]
 			mission_index = int(v) - 1 if v.is_valid_int() else 0
+			campaign_mode = false
+		elif a == "--newcampaign":
+			CampaignState.wipe()
 		elif a == "--nobrief":
 			_skip_briefing = true
+
+func _load_campaign_mission() -> void:
+	var node := campaign.node(state.node_id)
+	if node == null:
+		state = CampaignState.fresh(campaign)
+		node = campaign.node(state.node_id)
+	mission = load(node.mission_path) as Mission
+
+## What the branch will do with this result — shown before you commit to it.
+func _branch_preview(complete: bool) -> String:
+	if not campaign_mode:
+		return ""
+	var node := campaign.node(state.node_id)
+	if node == null:
+		return ""
+	var next_id := node.on_complete if complete else node.on_fail
+	if next_id == "":
+		return "This ends the campaign." if complete else "There is nothing left to fall back to."
+	var next_node := campaign.node(next_id)
+	if next_node == null:
+		return ""
+	var next_mission := load(next_node.mission_path) as Mission
+	var lead := "Next:" if complete else "Falling back to:"
+	return "%s  %s" % [lead, next_mission.title]
 
 func _load_mission(index: int) -> void:
 	mission_index = clampi(index, 0, MISSIONS.size() - 1)
@@ -143,11 +188,16 @@ func _launch() -> void:
 
 	runner = MissionRunner.new()
 	runner.name = "MissionRunner"
+	runner.roster = state.roster
 	add_child(runner)
 	player = runner.setup(mission, self)
 	runner.state_changed.connect(_on_mission_ended)
+	runner.pilot_lost.connect(func(_p: Pilot) -> void:
+		if campaign_mode:
+			state.save())
 	runner.announce.connect(func(text: String, secs: float) -> void: hud.message(text, secs))
 	player.damaged.connect(func(_s, _a, _f) -> void: hud.flash_damage())
+	player.wing_command.connect(func(cmd: AIFighter.WingOrder) -> void: runner.command_wing(cmd, player))
 
 	starfield = Starfield.new()
 	add_child(starfield)
@@ -196,14 +246,33 @@ func _teardown() -> void:
 	hud = null
 	tuning = null
 
-func _on_mission_ended(state: MissionRunner.State) -> void:
+func _on_mission_ended(result: MissionRunner.State) -> void:
 	get_tree().paused = true
-	briefing.show_debrief(mission, state == MissionRunner.State.COMPLETE)
+	_last_result_complete = result == MissionRunner.State.COMPLETE
+	briefing.show_debrief(mission, _last_result_complete,
+		_branch_preview(_last_result_complete), state.roster)
 
+## N at the debrief. Only here does the campaign actually move — so you can
+## replay a mission you botched before committing to the branch it sends you down.
 func _next_mission() -> void:
-	_load_mission((mission_index + 1) % MISSIONS.size())
 	get_tree().paused = true
-	briefing.show_briefing(mission)
+	if not campaign_mode:
+		_load_mission((mission_index + 1) % MISSIONS.size())
+		briefing.show_briefing(mission, state.roster)
+		return
+	var next_id := state.advance(campaign, _last_result_complete)
+	if next_id == "":
+		briefing.show_campaign_end(campaign.title, _last_result_complete, state.roster)
+		return
+	_load_campaign_mission()
+	briefing.show_briefing(mission, state.roster)
+
+func _restart_campaign() -> void:
+	CampaignState.wipe()
+	state = CampaignState.fresh(campaign)
+	_load_campaign_mission()
+	get_tree().paused = true
+	briefing.show_briefing(mission, state.roster)
 
 func _process(dt: float) -> void:
 	if is_instance_valid(player) and not player.dead and is_instance_valid(chase_cam):

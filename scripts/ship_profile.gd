@@ -23,6 +23,16 @@ extends Resource
 ## no drift, so keep this high; drop it to see Newtonian sliding.
 @export var inertia_response: float = 6.0
 
+@export_group("Afterburner")
+## Wing Commander's answer to a faster opponent: a burst you have to spend.
+## Set ab_fuel to 0 on craft that have none.
+@export var ab_speed_mult: float = 1.75
+@export var ab_accel_mult: float = 2.4
+@export var ab_fuel: float = 100.0
+@export var ab_burn: float = 24.0          # fuel/s while lit
+@export var ab_recharge: float = 8.0       # fuel/s once cool
+@export var ab_recharge_delay: float = 1.6 # seconds after cutting it
+
 @export_group("Survivability")
 @export var hull_max: float = 100.0
 @export var shield_max: float = 100.0           # per side (fore / aft)

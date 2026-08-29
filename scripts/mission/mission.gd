@@ -9,6 +9,8 @@ extends Resource
 @export var player_start: Vector3 = Vector3.ZERO
 @export var player_facing: Vector3 = Vector3(0, 0, -1000)
 @export var groups: Array[CraftGroup] = []
+## Which group is the player's own flight — the one that takes wing commands.
+@export var wing_group: String = ""
 @export var goals: Array[MissionGoal] = []
 ## 0 = no limit. A limit that expires fails any goal still pending.
 @export var time_limit: float = 0.0

@@ -1,0 +1,73 @@
+[gd_resource type="Resource" script_class="Mission" format=3]
+
+[ext_resource type="Script" path="res://scripts/mission/mission_goal.gd" id="1_r5jsk"]
+[ext_resource type="Script" path="res://scripts/mission/craft_group.gd" id="2_xgnry"]
+[ext_resource type="Resource" path="res://data/lancet.tres" id="3_rsll6"]
+[ext_resource type="Resource" path="res://data/vex.tres" id="4_4gwu7"]
+[ext_resource type="Script" path="res://scripts/mission/mission.gd" id="5_5f35a"]
+
+[sub_resource type="Resource" id="Resource_u6kwr"]
+script = ExtResource("1_r5jsk")
+text = "Break the vanguard"
+group_id = "vanguard"
+
+[sub_resource type="Resource" id="Resource_6181s"]
+script = ExtResource("1_r5jsk")
+text = "Break the second wave"
+group_id = "secondwave"
+
+[sub_resource type="Resource" id="Resource_3v1q7"]
+script = ExtResource("1_r5jsk")
+kind = 1
+text = "Bring your wing home"
+primary = false
+group_id = "wing"
+
+[sub_resource type="Resource" id="Resource_cun41"]
+script = ExtResource("2_xgnry")
+id = "wing"
+profile = ExtResource("3_rsll6")
+count = 2
+use_roster = true
+spawn_point = Vector3(-140, 30, 1460)
+spawn_spread = 90.0
+order = 3
+order_target = "player"
+
+[sub_resource type="Resource" id="Resource_es5r6"]
+script = ExtResource("2_xgnry")
+id = "vanguard"
+profile = ExtResource("4_4gwu7")
+spawn_point = Vector3(-400, 120, -2200)
+order = 2
+order_target = "player"
+
+[sub_resource type="Resource" id="Resource_fjo7y"]
+script = ExtResource("2_xgnry")
+id = "secondwave"
+profile = ExtResource("4_4gwu7")
+count = 2
+skill = 0.7
+spawn_point = Vector3(1400, -200, -3000)
+arrival = 1
+arrival_delay = 75.0
+order = 2
+order_target = "player"
+
+[resource]
+script = ExtResource("5_5f35a")
+title = "Regroup at Halgren Gate"
+subtitle = "Accord defensive patrol — Lancet flight"
+briefing = "The raiders you did not stop went through the Gate.
+There are more of them now, and they know we are thin here.
+
+Hold the Gate. Nothing gets past you a second time.
+
+Your wing launches with you. Use them — a Lancet alone against
+five is arithmetic, not flying."
+player_profile = ExtResource("3_rsll6")
+player_start = Vector3(0, 0, 1400)
+player_facing = Vector3(0, 0, -2000)
+groups = Array[ExtResource("2_xgnry")]([SubResource("Resource_cun41"), SubResource("Resource_es5r6"), SubResource("Resource_fjo7y")])
+wing_group = "wing"
+goals = Array[ExtResource("1_r5jsk")]([SubResource("Resource_u6kwr"), SubResource("Resource_6181s"), SubResource("Resource_3v1q7")])

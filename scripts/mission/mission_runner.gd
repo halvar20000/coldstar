@@ -9,6 +9,7 @@ extends Node
 signal state_changed(state: State)
 signal announce(text: String, seconds: float)
 signal goals_changed()
+signal pilot_lost(pilot: Pilot)
 
 enum State { FLYING, COMPLETE, FAILED }
 
@@ -35,10 +36,26 @@ var state: State = State.FLYING
 var elapsed := 0.0
 
 var _groups: Dictionary = {}     # id -> GroupState
+## Living pilots available to fill the player's wing. A campaign supplies this
+## and keeps the losses; a one-off mission gets the default squadron.
+var roster: Array[Pilot] = []
+
+static func default_roster() -> Array[Pilot]:
+	var out: Array[Pilot] = []
+	for entry in [["Two", "Rell Sennick", 0.62], ["Three", "Mara Ilves", 0.55],
+			["Four", "Odo Karrick", 0.70]]:
+		var p := Pilot.new()
+		p.callsign = entry[0]
+		p.name_full = entry[1]
+		p.skill = entry[2]
+		out.append(p)
+	return out
 
 func setup(p_mission: Mission, p_world: Node3D) -> PlayerShip:
 	mission = p_mission
 	world = p_world
+	if roster.is_empty():
+		roster = default_roster()
 	elapsed = 0.0
 	state = State.FLYING
 	_groups.clear()
@@ -103,7 +120,14 @@ func _spawn_group(gs: GroupState) -> void:
 	gs.arrived = true
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(def.id)
-	for i in def.count:
+	# A roster flight only launches with the pilots it still has.
+	var crew: Array[Pilot] = []
+	if def.use_roster:
+		for p in roster:
+			if p.alive and crew.size() < def.count:
+				crew.append(p)
+	var launch_count := crew.size() if def.use_roster else def.count
+	for i in launch_count:
 		var ship := AIFighter.new()
 		ship.name = "%s_%d" % [def.id, i + 1]
 		world.add_child(ship)
@@ -113,6 +137,10 @@ func _spawn_group(gs: GroupState) -> void:
 		ship.setup(profile)
 		ship.group_id = def.id
 		ship.skill = def.skill
+		if def.use_roster:
+			ship.pilot = crew[i]
+			ship.skill = crew[i].skill
+			ship.name = crew[i].callsign
 		ship.order = def.order
 		ship.order_target_group = def.order_target
 		ship.waypoints = def.waypoints.duplicate()
@@ -125,6 +153,7 @@ func _spawn_group(gs: GroupState) -> void:
 		ship.flight.throttle = 1.0
 		ship.flight.speed = profile.rated_speed
 		ship.destroyed.connect(_on_ship_destroyed.bind(gs))
+		ship.damaged.connect(_on_ship_damaged.bind(ship))
 		ship.departed.connect(_on_ship_departed.bind(gs))
 		gs.ships.append(ship)
 		gs.spawned += 1
@@ -138,7 +167,8 @@ func _bind_escorts() -> void:
 		var gs: GroupState = _groups[id]
 		if gs.def.order != CraftGroup.Order.ESCORT:
 			continue
-		var anchor := _lead_of(gs.def.order_target)
+		# "player" is a legal escort target even though the player is not a group.
+		var anchor := player if gs.def.order_target == "player" else _lead_of(gs.def.order_target)
 		for s in gs.ships:
 			if is_instance_valid(s) and s is AIFighter:
 				(s as AIFighter).escort_anchor = anchor
@@ -152,8 +182,59 @@ func _lead_of(group_id: String) -> Ship:
 			return s
 	return null
 
-func _on_ship_destroyed(_ship: Ship, gs: GroupState) -> void:
+func _on_ship_destroyed(ship: Ship, gs: GroupState) -> void:
 	gs.destroyed += 1
+	var ai := ship as AIFighter
+	if ai != null and ai.pilot != null:
+		ai.pilot.alive = false
+		announce.emit("%s is gone." % ai.pilot.callsign, 4.0)
+		pilot_lost.emit(ai.pilot)
+		return
+	# Credit the player's wing out loud; a kill you did not make still matters.
+	if not is_instance_valid(ship.last_attacker):
+		return
+	var killer := ship.last_attacker as AIFighter
+	if killer != null and killer.pilot != null and ship.faction != killer.faction:
+		announce.emit("%s: splash one." % killer.pilot.callsign, 2.5)
+
+var _hit_calls: Dictionary = {}
+
+func _on_ship_damaged(ship_hit: Ship, _amount: float, _fore: bool, ship: Ship) -> void:
+	var ai := ship as AIFighter
+	if ai == null or ai.pilot == null or ship_hit != ship:
+		return
+	# One call for help per pilot per ten seconds, or the channel is unusable.
+	if ship.hull > ship.profile.hull_max * 0.45:
+		return
+	var last: float = _hit_calls.get(ai.pilot.callsign, -100.0)
+	if elapsed - last < 10.0:
+		return
+	_hit_calls[ai.pilot.callsign] = elapsed
+	announce.emit("%s: I'm hit, I'm hit!" % ai.pilot.callsign, 3.0)
+
+# --- the player's wing ---------------------------------------------------
+
+func wingmen() -> Array[AIFighter]:
+	var out: Array[AIFighter] = []
+	var gs: GroupState = _groups.get(mission.wing_group)
+	if gs == null:
+		return out
+	for s in gs.ships:
+		if is_instance_valid(s) and not s.dead and s is AIFighter:
+			out.append(s as AIFighter)
+	return out
+
+## One order goes to the whole flight. Splitting the wing per-craft is a
+## feature for the day there is more than one wingman worth splitting.
+func command_wing(cmd: AIFighter.WingOrder, leader: PlayerShip) -> void:
+	var wing := wingmen()
+	if wing.is_empty():
+		announce.emit("No wing to command.", 2.0)
+		return
+	var reply := ""
+	for w in wing:
+		reply = w.receive_order(cmd, leader, leader.target)
+	announce.emit("%s: %s." % [wing[0].pilot.callsign if wing[0].pilot else "Wing", reply], 2.5)
 
 func _on_ship_departed(_ship: AIFighter, gs: GroupState) -> void:
 	gs.departed += 1

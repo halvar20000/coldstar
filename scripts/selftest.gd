@@ -74,7 +74,16 @@ func _physics_process(dt: float) -> void:
 	var aim := Steering.lead_point(player, tgt)
 	Steering.fly_toward(player, player.flight, aim, 1.0)
 	player.throttle_input = 1.0
-	if best < 900.0 and Steering.on_target(player, aim, 5.0) and player.can_fire():
+
+	# Burner to close a gap, never in the turning fight — same call a pilot makes.
+	player.afterburner = best > 1400.0 and player.ab_pct() > 0.3
+
+	# Shot discipline: a wide cone up close where the bolts converge, a tight one
+	# further out. Spraying from 900 m at 6 degrees is how the old autopilot fired
+	# 150 rounds a mission and hit nothing.
+	var cone := 8.0 if best < 550.0 else (5.0 if best < 800.0 else 2.5)
+	player.link = Ship.Link.QUAD if best < 600.0 and player.laser_energy > 45.0 else Ship.Link.DUAL
+	if best < 950.0 and Steering.on_target(player, aim, cone) and player.can_fire():
 		player.fire()
 		_shots += 1
 	# Manage power the way a pilot would, which is also the only way a Lancet

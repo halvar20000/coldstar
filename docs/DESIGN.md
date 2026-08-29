@@ -53,6 +53,25 @@ Missions are Godot resources rather than JSON so the inspector is the mission
 editor from day one: typed dropdowns for orders and triggers, no separate tool,
 and a typo becomes a compile-time impossibility instead of a runtime bug.
 
+## M2: what to take from Wing Commander
+
+Coldstar clones X-Wing's systems, but three Wing Commander ideas are strictly
+better and cost little on top of what M1 already built:
+
+**Named wingmen with permanent losses.** The AI was already there; what was
+missing was a name and a consequence. A pilot who dies is struck off the roster
+for the rest of the campaign, and a flight of three launches as two.
+
+**Branching on failure.** X-Wing makes you refly a lost mission; WC lets the war
+go badly and gives you the next one. The mission system already tracked pass/fail
+per goal, so branching is a graph over missions rather than new machinery. The
+branch is shown at the debrief *before* you accept it, so a botched mission can
+still be replayed — the campaign only moves when you say so.
+
+**The afterburner.** The Vex is faster than the Lancet by design. Without a burst
+the player has no answer to a fleeing interceptor except hoping it turns. Fuel
+makes it a decision rather than a second throttle.
+
 ## Architecture
 
 ```
@@ -69,7 +88,10 @@ Cockpit / HUD         canopy frame, instruments
 SelfTest              headless autopilot that proves the combat loop
 Mission / CraftGroup / MissionGoal   mission data (.tres)
 MissionRunner         spawning, arrival triggers, goal evaluation, mission end
-BriefingScreen        pre-flight briefing and post-flight debrief
+BriefingScreen        pre-flight briefing, debrief, campaign end
+Pilot                 a named wingman; alive/dead persists across the campaign
+Campaign / CampaignNode   the mission graph and its win/lose branches
+CampaignState         current node + roster + history, saved as JSON in user://
 ```
 
 Player and AI fly the *same* `FlightController` with the same profile limits. The

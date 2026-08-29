@@ -27,6 +27,9 @@ enum Order {
 @export var skill: float = 0.6
 ## Blank means "whatever the profile says".
 @export var faction_override: String = ""
+## Fill this flight from the campaign's surviving pilots rather than spawning
+## anonymous craft. A flight of three with only two pilots left launches as two.
+@export var use_roster: bool = false
 
 @export_group("Placement")
 @export var spawn_point: Vector3 = Vector3.ZERO

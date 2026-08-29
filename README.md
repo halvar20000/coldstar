@@ -11,7 +11,7 @@ Interceptor**.
 music, factions or hardware. The design is free to clone; the setting is ours.
 See `docs/DESIGN.md`.
 
-## Status — M1: the mission system
+## Status — M2: wingmen, campaign, afterburner
 
 M0 (flight feel) passed: the handling was judged X-Wing-like, so the flight model
 is settled and work from here is refinement, not re-architecture.
@@ -20,12 +20,28 @@ M1 makes missions **data**. A mission is a `.tres` file — flights, arrival
 triggers, orders, waypoints and goals — loaded by `MissionRunner`, which knows
 nothing about any particular mission. Adding mission thirty means adding a file.
 
-Two missions ship with it:
+**M2 borrows the three things Wing Commander did better than X-Wing.**
+
+- **Named wingmen.** Your flight is filled from a squadron roster — Rell, Mara,
+  Odo — and they stay dead. Losses carry across the whole campaign, which is the
+  only reason naming them is worth doing. They call out when they are hit, when
+  they lose someone, and when they take a kill.
+- **A branching campaign.** Failing a mission does not mean flying it again: the
+  war moves on and you fly the consequence. Fail the sweep and you are defending
+  Halgren Gate against the raiders you let through. The debrief shows you the
+  branch *before* you commit to it, so you can still replay a mission you botched.
+- **Afterburner.** A fuel-limited burst that overrides the throttle. It is the
+  Lancet's only answer to a Vex in a straight line, and it does not come back
+  until you have been off it for a moment.
+
+Three missions ship with it:
 
 1. **Sweep at Tessaly Reach** — patrol intercept. A loitering raider pair, then a
    relief flight that jumps in *because* you killed the first one.
 2. **Convoy out of Halgren** — escort. An unarmed hauler that cannot manoeuvre or
    run, a picket already waiting, and an ambush triggered by where *you* fly.
+3. **Regroup at Halgren Gate** — the failure branch. Five interceptors, your full
+   wing, and no room to lose anyone.
 
 Working now:
 
@@ -88,9 +104,10 @@ Or open the folder in Godot 4.7 and press F5.
 | A | fire |
 | X | cycle fire link |
 | Y / B / RB | target nearest / cycle / gunsight |
+| **Hold LB** | wing orders: A attack my target, Y cover me, X form up, B break and engage |
 | D-pad ↑↓ | laser recharge up / down |
 | D-pad ←→ | shield recharge down / up |
-| LB | shunt laser energy into shields |
+| LB (tap) | shunt laser energy into shields |
 | L3 / R3 | shield config / reset power |
 | View | toggle cockpit ↔ chase |
 | Menu | reset the engagement |
@@ -99,6 +116,13 @@ A HOTAS works through the same axes (stick roll/pitch, triggers as rudder), but
 device enumeration order is not stable across platforms — a proper binding screen
 is on the list before this leaves the prototype stage. All bindings live in
 `scripts/input_setup.gd`, built at runtime, not baked into `project.godot`.
+
+Campaign branching and the persistent roster have their own test, which needs no
+flying at all:
+
+```bash
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script tools/test_campaign.gd
+```
 
 Verify the pad mapping without a controller plugged in:
 
@@ -142,6 +166,13 @@ ever need canonical files again:
 ```bash
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script tools/build_missions.gd
 ```
+
+## The campaign
+
+`data/campaigns/accord.tres` is a graph: each node names a mission and where a
+win or a loss sends you. Progress and the squadron roster are saved as plain JSON
+in `user://campaign.json` — readable, diffable, deletable. `--newcampaign` wipes
+it; `--mission=N` bypasses the campaign entirely for testing.
 
 ## Next
 

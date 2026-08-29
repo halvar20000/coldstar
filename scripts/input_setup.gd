@@ -22,8 +22,10 @@ const BINDINGS := {
 	"pitch_down":  [[K, KEY_UP],    [AXIS, JOY_AXIS_LEFT_Y, -1.0]],
 	"roll_left":   [[K, KEY_LEFT],  [AXIS, JOY_AXIS_LEFT_X, -1.0]],
 	"roll_right":  [[K, KEY_RIGHT], [AXIS, JOY_AXIS_LEFT_X, 1.0]],
-	"yaw_left":    [[K, KEY_COMMA], [AXIS, JOY_AXIS_TRIGGER_LEFT, 1.0]],
-	"yaw_right":   [[K, KEY_PERIOD],[AXIS, JOY_AXIS_TRIGGER_RIGHT, 1.0]],
+	"yaw_left":    [[K, KEY_COMMA], [AXIS, JOY_AXIS_RIGHT_X, -1.0]],
+	"yaw_right":   [[K, KEY_PERIOD],[AXIS, JOY_AXIS_RIGHT_X, 1.0]],
+	## Triggers earn their keep: left burns, right shoots.
+	"afterburner": [[K, KEY_SHIFT], [AXIS, JOY_AXIS_TRIGGER_LEFT, 1.0]],
 
 	# --- throttle ---
 	# On the pad this is a rate, not a position: hold the right stick forward to
@@ -38,7 +40,8 @@ const BINDINGS := {
 	"throttle_100":  [[K, KEY_4]],
 
 	# --- guns ---
-	"fire":      [[K, KEY_SPACE], [MOUSE, MOUSE_BUTTON_LEFT], [BTN, JOY_BUTTON_A]],
+	"fire":      [[K, KEY_SPACE], [MOUSE, MOUSE_BUTTON_LEFT], [BTN, JOY_BUTTON_A],
+	              [AXIS, JOY_AXIS_TRIGGER_RIGHT, 1.0]],
 	"link_mode": [[K, KEY_V], [BTN, JOY_BUTTON_X]],
 
 	# --- power management (the CMD loop) ---
@@ -47,8 +50,17 @@ const BINDINGS := {
 	"shield_up":   [[K, KEY_S], [BTN, JOY_BUTTON_DPAD_RIGHT]],
 	"shield_down": [[K, KEY_X], [BTN, JOY_BUTTON_DPAD_LEFT]],
 	"power_reset": [[K, KEY_D], [BTN, JOY_BUTTON_RIGHT_STICK]],
-	"xfer_shield": [[K, KEY_E], [BTN, JOY_BUTTON_LEFT_SHOULDER]],
+	"xfer_shield": [[K, KEY_E]],
+	## Held on the pad, LB turns the face buttons into the wing command menu.
+	## Tapped and released without a command, it still does the energy shunt.
+	"wing_menu":   [[BTN, JOY_BUTTON_LEFT_SHOULDER]],
 	"shield_cfg":  [[K, KEY_F], [BTN, JOY_BUTTON_LEFT_STICK]],
+
+	# --- wing commands (keyboard direct; on the pad, hold LB + face button) ---
+	"wing_attack": [[K, KEY_Q]],
+	"wing_cover":  [[K, KEY_W]],
+	"wing_form":   [[K, KEY_C]],
+	"wing_break":  [[K, KEY_B]],
 
 	# --- targeting ---
 	"target_next":    [[K, KEY_T], [BTN, JOY_BUTTON_B]],

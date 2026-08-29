@@ -20,6 +20,8 @@ var hull := 100.0
 var shield_fore := 0.0
 var shield_aft := 0.0
 var laser_energy := 100.0
+var ab_fuel := 0.0
+var afterburner := false
 var link: Link = Link.DUAL
 var dead := false
 ## Set by MissionRunner so orders can name a flight ("attack the raiders").
@@ -41,6 +43,7 @@ func setup(p_profile: ShipProfile) -> void:
 	shield_fore = p_profile.shield_max
 	shield_aft = p_profile.shield_max
 	laser_energy = p_profile.laser_capacity
+	ab_fuel = p_profile.ab_fuel
 	_hardpoints = ShipFactory.build(self, p_profile)
 	Combat.register(self)
 
@@ -54,6 +57,31 @@ func _physics_process(dt: float) -> void:
 	flight.step(dt)
 	_recharge(dt)
 	_gun_cd = maxf(0.0, _gun_cd - dt)
+	_step_afterburner(dt)
+
+var _ab_cool := 0.0
+
+## Fuel only comes back once you have been off it for a moment, so the burner
+## cannot be feathered indefinitely — you either commit or you save it.
+func _step_afterburner(dt: float) -> void:
+	if profile.ab_fuel <= 0.0:
+		afterburner = false
+		flight.afterburner = false
+		return
+	if afterburner and ab_fuel > 0.0:
+		ab_fuel = maxf(0.0, ab_fuel - profile.ab_burn * dt)
+		_ab_cool = profile.ab_recharge_delay
+		if ab_fuel <= 0.0:
+			afterburner = false
+	else:
+		afterburner = false
+		_ab_cool = maxf(0.0, _ab_cool - dt)
+		if _ab_cool <= 0.0:
+			ab_fuel = minf(profile.ab_fuel, ab_fuel + profile.ab_recharge * dt)
+	flight.afterburner = afterburner
+
+func ab_pct() -> float:
+	return ab_fuel / profile.ab_fuel if profile.ab_fuel > 0.0 else 0.0
 
 func _recharge(dt: float) -> void:
 	laser_energy = minf(profile.laser_capacity,
@@ -116,10 +144,10 @@ func fire() -> void:
 		var muzzle := global_transform * hp
 		Combat.spawn_bolt(get_parent(), muzzle, (aim - muzzle).normalized(), self)
 
-func take_hit(amount: float, from_world: Vector3, shooter: Node3D) -> void:
+func take_hit(amount: float, from_world: Vector3, shooter: Node3D = null) -> void:
 	if dead:
 		return
-	last_attacker = shooter
+	last_attacker = shooter if is_instance_valid(shooter) else null
 	var local := global_transform.affine_inverse() * from_world
 	var from_fore := local.z < 0.0     # -Z is forward
 	var left := amount
