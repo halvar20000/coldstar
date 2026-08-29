@@ -53,6 +53,14 @@ pipeline starts.
 - Headless runs render nothing, so `_draw` bugs will not show up there. Take a
   screenshot with `--shot=` to check anything visual.
 
+## Known-benign log noise
+
+Every run ends with `ERROR: 4 resources still in use at exit` naming the four
+looping .wav streams. Godot tears the resource cache down before an autoload can
+release them; `Audio._release_streams()` is wired to every shutdown notification
+and still does not beat it. It is cosmetic — do not go hunting for it, and grep
+for `SCRIPT ERROR` rather than `ERROR` when checking a run.
+
 ## Preferences vs tuning
 
 `Settings` (autoload) holds what belongs to the *person*: pitch inversion, saved

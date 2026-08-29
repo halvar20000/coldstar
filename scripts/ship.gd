@@ -143,6 +143,8 @@ func fire() -> void:
 		_next_cannon += 1
 		var muzzle := global_transform * hp
 		Combat.spawn_bolt(get_parent(), muzzle, (aim - muzzle).normalized(), self)
+	Audio.play_3d("laser_player" if faction == "accord" else "laser_enemy",
+		global_position, get_parent(), -3.0, randf_range(0.96, 1.05))
 
 func take_hit(amount: float, from_world: Vector3, shooter: Node3D = null) -> void:
 	if dead:
@@ -160,6 +162,10 @@ func take_hit(amount: float, from_world: Vector3, shooter: Node3D = null) -> voi
 			var absorbed := minf(shield_aft, left)
 			shield_aft -= absorbed
 			left -= absorbed
+	# Shields absorbing and hull tearing must not sound alike: that difference
+	# is how you know, without looking, that you are now in trouble.
+	Audio.play_3d("shield_hit" if left <= 0.0 else "hull_hit", from_world, get_parent(),
+		-2.0, randf_range(0.94, 1.07))
 	hull -= left
 	damaged.emit(self, amount, from_fore)
 	if hull <= 0.0:

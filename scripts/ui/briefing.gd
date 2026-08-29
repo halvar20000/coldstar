@@ -69,12 +69,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	var code := key.physical_keycode if key != null else 0
 
-	if code == KEY_SPACE or code == KEY_ENTER or event.is_action_pressed("fire"):
-		launch_requested.emit()
-		get_viewport().set_input_as_handled()
-	elif code == KEY_I or event.is_action_pressed("target_nearest"):
+	if code == KEY_I or event.is_action_pressed("target_nearest"):
 		Settings.toggle_invert_pitch()
+		Audio.play_ui("ui", -6.0)
 		queue_redraw()
+		get_viewport().set_input_as_handled()
+	elif code == KEY_SPACE or code == KEY_ENTER or event.is_action_pressed("fire"):
+		launch_requested.emit()
 		get_viewport().set_input_as_handled()
 	elif mode == Mode.DEBRIEF and (code == KEY_N or event.is_action_pressed("target_next")):
 		next_mission_requested.emit()

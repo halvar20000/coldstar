@@ -35,11 +35,45 @@ func setup(p: PlayerShip) -> void:
 	Settings.changed.connect(func() -> void: inv.button_pressed = Settings.invert_pitch)
 	box.add_child(inv)
 
+	var vol := Label.new()
+	vol.text = "VOLUME  (saved)"
+	vol.add_theme_font_size_override("font_size", 12)
+	box.add_child(vol)
+	_volume(box, "Master", "master")
+	_volume(box, "Effects", "sfx")
+	_volume(box, "Music", "music")
+
 	var hint := Label.new()
 	hint.text = "Flight numbers apply immediately and are not saved.\nCopy good ones into data/lancet.tres. Pitch inversion IS saved."
 	hint.add_theme_font_size_override("font_size", 11)
 	box.add_child(hint)
 	visible = false
+
+## Volumes live in Settings, not in the ship profile: they belong to the
+## person, so unlike the flight numbers they are written to disk.
+func _volume(parent: Node, label: String, key: String) -> void:
+	var row := HBoxContainer.new()
+	var name_lbl := Label.new()
+	name_lbl.text = label
+	name_lbl.custom_minimum_size = Vector2(150, 0)
+	name_lbl.add_theme_font_size_override("font_size", 12)
+	var value_lbl := Label.new()
+	value_lbl.custom_minimum_size = Vector2(48, 0)
+	value_lbl.add_theme_font_size_override("font_size", 12)
+	var slider := HSlider.new()
+	slider.min_value = 0.0
+	slider.max_value = 1.0
+	slider.step = 0.05
+	slider.custom_minimum_size = Vector2(120, 0)
+	slider.value = Settings.get("volume_" + key)
+	value_lbl.text = "%d%%" % int(slider.value * 100.0)
+	slider.value_changed.connect(func(v: float) -> void:
+		Settings.set_volume(key, v)
+		value_lbl.text = "%d%%" % int(v * 100.0))
+	row.add_child(name_lbl)
+	row.add_child(slider)
+	row.add_child(value_lbl)
+	parent.add_child(row)
 
 func _slider(parent: Node, label: String, prop: String, lo: float, hi: float) -> void:
 	var row := HBoxContainer.new()

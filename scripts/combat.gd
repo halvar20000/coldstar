@@ -47,16 +47,19 @@ func spawn_bolt(parent: Node, from: Vector3, dir: Vector3, shooter: Ship) -> voi
 
 func spawn_impact(parent: Node, at: Vector3) -> void:
 	_flash(parent, at, Color(1.0, 0.88, 0.5), 3.0, 3.0, 0.14)
+	Audio.play_3d("impact", at, parent, -8.0, randf_range(0.9, 1.12))
 
 func spawn_explosion(parent: Node, at: Vector3) -> void:
 	# Two shells: a hot core that dies fast and a slower orange bloom. Additive
 	# blending keeps it reading as light rather than as a painted ball.
 	_flash(parent, at, Color(1.0, 0.95, 0.75), 7.0, 3.2, 0.35)
 	_flash(parent, at, Color(1.0, 0.45, 0.12), 10.0, 4.5, 0.85)
+	Audio.play_3d("explosion", at, parent, 2.0, randf_range(0.92, 1.06))
 
 ## A craft leaving under its own power: a streak along its own heading, not a
 ## fireball. The player needs to tell "they made it" from "they died".
 func spawn_jump(parent: Node, at: Vector3, back: Vector3) -> void:
+	Audio.play_3d("jump", at, parent, -2.0)
 	_flash(parent, at, Color(0.55, 0.85, 1.0), 12.0, 3.0, 0.5)
 	_flash(parent, at - back.normalized() * 60.0, Color(0.35, 0.6, 1.0), 6.0, 4.0, 0.7)
 

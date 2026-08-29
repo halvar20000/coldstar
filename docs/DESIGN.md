@@ -72,6 +72,24 @@ still be replayed — the campaign only moves when you say so.
 the player has no answer to a fleeing interceptor except hoping it turns. Fuel
 makes it a decision rather than a second throttle.
 
+## Sound
+
+Generated, not sourced. `tools/make_sounds.py` writes every clip from oscillators
+and filtered noise, which means no licence tracking, no asset hunting, and a
+sound design that is edited by changing numbers in a file under version control.
+Loops are built from a whole number of cycles at the loop length so they repeat
+without a click.
+
+Two rules drive the mix. **Shields and hull sound different** — the pilot must be
+able to tell absorbed from wounded without looking. And **the engine follows the
+throttle, not the speed**, because it is the pilot's own input that should be
+audible; a ship that answers the lever feels connected in a way one that answers
+the physics does not.
+
+The score copies X-Wing's trick rather than its tunes: two stems on one root,
+crossfaded on threat proximity, fading in fast and out slow. The stems shipped
+here are placeholders; the crossfade is the feature.
+
 ## Architecture
 
 ```
@@ -89,6 +107,8 @@ SelfTest              headless autopilot that proves the combat loop
 Mission / CraftGroup / MissionGoal   mission data (.tres)
 MissionRunner         spawning, arrival triggers, goal evaluation, mission end
 BriefingScreen        pre-flight briefing, debrief, campaign end
+Audio                 generated clips, positional one-shots, dynamic score
+Settings              what belongs to the player: pitch inversion, volumes
 Pilot                 a named wingman; alive/dead persists across the campaign
 Campaign / CampaignNode   the mission graph and its win/lose branches
 CampaignState         current node + roster + history, saved as JSON in user://

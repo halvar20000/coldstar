@@ -16,6 +16,7 @@ boot_splash/show_image=false
 InputSetup="*res://scripts/input_setup.gd"
 Combat="*res://scripts/combat.gd"
 Settings="*res://scripts/settings.gd"
+Audio="*res://scripts/audio.gd"
 
 [display]
 

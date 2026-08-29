@@ -61,6 +61,9 @@ Working now:
 - Goals: destroy, protect, see-them-depart, reach-a-point, survive
 - Briefing and debrief screens, and a live objectives list in the cockpit
 - Live tuning panel (F3) for every flight number, changeable while you fly
+- Sound: positional guns, hits, explosions and jump-outs; an engine note that
+  tracks the throttle; a cockpit warning tone; radio blips on comms; and a
+  two-stem dynamic score that leans into the combat layer as something closes
 
 ## Running it
 
@@ -175,6 +178,38 @@ ever need canonical files again:
 ```bash
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script tools/build_missions.gd
 ```
+
+## Sound
+
+Every clip is **synthesised from scratch** by `tools/make_sounds.py` — no sample
+packs, nothing to license, and every parameter is a number in that file rather
+than a property of a recording. Rebuild the whole set with:
+
+```bash
+python3 tools/make_sounds.py
+```
+
+Check it without a mission (windowed to hear it, headless to verify it loads):
+
+```bash
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . -- --soundtest
+```
+
+Shields absorbing and hull tearing deliberately sound different — that contrast
+is how you know you are in trouble without looking at the panel. The score is two
+stems on the same root, crossfaded by how close the nearest hostile is: it leans
+into the combat layer fast and back out slowly, so the tension does not flicker.
+
+The two music stems are placeholders — the *system* is the point. To swap in real
+tracks, drop 8-second seamless loops named `music_calm.wav` and
+`music_combat.wav` into `assets/audio/`, in the same key so the crossfade does
+not clash. (Suno tracks cut the way the Sugarfall loops were cut work directly.)
+
+Volumes (master / effects / music) are in the F3 panel and are saved with the
+rest of your preferences.
+
+And yes: space is silent. So was X-Wing's, for the same reason — a silent
+dogfight is unreadable.
 
 ## The campaign
 

@@ -132,6 +132,8 @@ func _pad_wing_command(event: InputEvent) -> void:
 		invert_toggled.emit()
 
 func _set_target(t: Ship) -> void:
+	if t != null and t != target:
+		Audio.play_ui("lock", -4.0)
 	target = t
 	target_changed.emit(t)
 

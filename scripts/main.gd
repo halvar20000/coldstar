@@ -37,6 +37,7 @@ var _selftest_seconds := 0.0
 var _verbose := false
 var _seed := 1
 var _padtest := false
+var _soundtest := false
 var _skip_briefing := false
 
 func _ready() -> void:
@@ -50,11 +51,17 @@ func _ready() -> void:
 	briefing = BriefingScreen.new()
 	ui_layer.add_child(briefing)
 	briefing.launch_requested.connect(func() -> void:
+		Audio.play_ui("ui", -4.0)
 		if briefing.mode == BriefingScreen.Mode.CAMPAIGN_END:
 			_restart_campaign()
 		else:
 			_launch())
 	briefing.next_mission_requested.connect(_next_mission)
+	if _soundtest:
+		var snd := SoundTest.new()
+		add_child(snd)
+		snd.run()
+		return
 	campaign = load(CAMPAIGN_PATH) as Campaign
 	if campaign_mode:
 		state = CampaignState.load_or_new(campaign)
@@ -90,6 +97,8 @@ func _parse_cmdline() -> void:
 			var v := a.split("=")[-1]
 			mission_index = int(v) - 1 if v.is_valid_int() else 0
 			campaign_mode = false
+		elif a == "--soundtest":
+			_soundtest = true
 		elif a == "--newcampaign":
 			CampaignState.wipe()
 		elif a == "--nobrief":
@@ -195,8 +204,14 @@ func _launch() -> void:
 	runner.pilot_lost.connect(func(_p: Pilot) -> void:
 		if campaign_mode:
 			state.save())
-	runner.announce.connect(func(text: String, secs: float) -> void: hud.message(text, secs))
-	player.damaged.connect(func(_s, _a, _f) -> void: hud.flash_damage())
+	runner.announce.connect(func(text: String, secs: float) -> void:
+		hud.message(text, secs)
+		Audio.play_ui("comms", -7.0))
+	player.damaged.connect(func(_s, _a, _f) -> void:
+		hud.flash_damage()
+		# The tone is for "you are actually in danger", not for every scratch.
+		if player.hull < player.profile.hull_max * 0.5 or player.shield_pct() < 0.12:
+			Audio.warn())
 	player.wing_command.connect(func(cmd: AIFighter.WingOrder) -> void: runner.command_wing(cmd, player))
 	player.invert_toggled.connect(_announce_pitch)
 
@@ -222,6 +237,7 @@ func _launch() -> void:
 	tuning.setup(player)
 
 	_set_view(not _boot_chase)
+	Audio.start_flight()
 	hud.message(mission.title.to_upper(), 3.0)
 
 	if _padtest:
@@ -249,6 +265,8 @@ func _teardown() -> void:
 
 func _on_mission_ended(result: MissionRunner.State) -> void:
 	get_tree().paused = true
+	Audio.stop_flight()
+	Audio.music_only()
 	_last_result_complete = result == MissionRunner.State.COMPLETE
 	briefing.show_debrief(mission, _last_result_complete,
 		_branch_preview(_last_result_complete), state.roster)
@@ -278,6 +296,7 @@ func _restart_campaign() -> void:
 func _process(dt: float) -> void:
 	if is_instance_valid(player) and not player.dead and is_instance_valid(chase_cam):
 		_update_chase(dt)
+		_update_audio(dt)
 	if _shot_path != "" and not _shot_taken:
 		_shot_after -= dt
 		if _shot_after <= 0.0:
@@ -287,6 +306,16 @@ func _process(dt: float) -> void:
 			img.save_png(_shot_path)
 			print("screenshot -> ", _shot_path)
 			get_tree().quit()
+
+## Engine note from the throttle, music from how close the nearest hostile is.
+func _update_audio(dt: float) -> void:
+	Audio.update_flight(player.flight.speed / maxf(player.profile.rated_speed, 1.0),
+		player.afterburner, dt)
+	var nearest := INF
+	for s in Combat.enemies_of(player.faction):
+		nearest = minf(nearest, player.global_position.distance_to(s.global_position))
+	var threat := 0.0 if nearest == INF else clampf(1.0 - (nearest - 600.0) / 2400.0, 0.0, 1.0)
+	Audio.set_threat(threat, dt)
 
 func _update_chase(dt: float) -> void:
 	var back := player.global_transform.basis.z * 34.0 + player.global_transform.basis.y * 9.0
