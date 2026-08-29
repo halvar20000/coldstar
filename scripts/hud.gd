@@ -7,6 +7,7 @@ extends Control
 
 var player: PlayerShip
 var camera: Camera3D
+var runner: MissionRunner
 var show_debug := true
 
 const AMBER := Color(1.0, 0.72, 0.20)
@@ -54,6 +55,7 @@ func _draw() -> void:
 	_draw_throttle(vp)
 	_draw_cmd(vp)
 	_draw_radar(vp)
+	_draw_objectives(vp)
 	if _damage_flash > 0.0:
 		draw_rect(Rect2(Vector2.ZERO, vp), Color(1.0, 0.2, 0.15, _damage_flash * 0.22))
 	if _msg_time > 0.0:
@@ -254,6 +256,32 @@ func _draw_debug(vp: Vector2) -> void:
 	for l in lines:
 		_text(Vector2(vp.x - 16, y), l, Color(DIM, 0.7), 12, HORIZONTAL_ALIGNMENT_RIGHT)
 		y += 16.0
+
+## The objectives list stays on screen the whole flight. In a mission-driven sim
+## the single most common question is "what am I supposed to be doing", and
+## making the pilot pause to remember is a design failure.
+func _draw_objectives(vp: Vector2) -> void:
+	if runner == null or runner.mission == null:
+		return
+	var x := 22.0
+	var y := 26.0
+	_text(Vector2(x, y), "OBJECTIVES", Color(DIM, 0.75), 12)
+	y += 18
+	for goal in runner.mission.goals:
+		var colour := Color(0.82, 0.88, 0.92) if goal.primary else Color(DIM, 0.8)
+		var mark := "-"
+		match goal.status:
+			MissionGoal.Status.COMPLETE:
+				colour = GREEN
+				mark = "x"
+			MissionGoal.Status.FAILED:
+				colour = RED
+				mark = "!"
+		_text(Vector2(x, y), "%s %s" % [mark, goal.label()], colour, 13)
+		y += 17
+	var mins := int(runner.elapsed) / 60
+	var secs := int(runner.elapsed) % 60
+	_text(Vector2(x, y + 6), "T+%02d:%02d" % [mins, secs], Color(DIM, 0.55), 12)
 
 # --- primitives ---------------------------------------------------------
 

@@ -54,6 +54,12 @@ func spawn_explosion(parent: Node, at: Vector3) -> void:
 	_flash(parent, at, Color(1.0, 0.95, 0.75), 7.0, 3.2, 0.35)
 	_flash(parent, at, Color(1.0, 0.45, 0.12), 10.0, 4.5, 0.85)
 
+## A craft leaving under its own power: a streak along its own heading, not a
+## fireball. The player needs to tell "they made it" from "they died".
+func spawn_jump(parent: Node, at: Vector3, back: Vector3) -> void:
+	_flash(parent, at, Color(0.55, 0.85, 1.0), 12.0, 3.0, 0.5)
+	_flash(parent, at - back.normalized() * 60.0, Color(0.35, 0.6, 1.0), 6.0, 4.0, 0.7)
+
 func _flash(parent: Node, at: Vector3, colour: Color, size: float, grow: float, dur: float) -> void:
 	if parent == null or not is_instance_valid(parent):
 		return

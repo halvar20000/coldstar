@@ -9,6 +9,7 @@ var player: PlayerShip
 var _fails := 0
 
 func run(p: PlayerShip) -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	player = p
 	# Events injected in the first frames after boot are dropped — Input is not
 	# flushing yet — so let the loop settle before testing anything.

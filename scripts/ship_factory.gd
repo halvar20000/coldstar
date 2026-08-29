@@ -11,6 +11,8 @@ static func build(ship: Node3D, profile: ShipProfile) -> Array[Vector3]:
 	match profile.silhouette:
 		"vex":
 			return _vex(ship, hull, accent)
+		"hauler":
+			return _hauler(ship, hull, accent)
 		_:
 			return _lancet(ship, hull, accent)
 
@@ -53,6 +55,23 @@ static func _vex(ship: Node3D, hull: Color, accent: Color) -> Array[Vector3]:
 		_box(ship, Vector3(0.5, 1.6, 2.0), Vector3(side * 7.0, 0.7, 2.6), Vector3.ZERO, accent)
 	_cyl(ship, 1.0, 3.0, Vector3(0, 0, 4.2), accent)
 	var hp: Array[Vector3] = [Vector3(-6.6, 0.0, -2.0), Vector3(6.6, 0.0, -2.0)]
+	return hp
+
+## Corvid Hauler - Accord freighter. Slow, unarmed, enormous next to a fighter,
+## and the reason escort missions are tense: it cannot save itself.
+static func _hauler(ship: Node3D, hull: Color, accent: Color) -> Array[Vector3]:
+	_box(ship, Vector3(9.0, 7.0, 46.0), Vector3(0, 0, 0), Vector3.ZERO, hull, "Fuselage")
+	_box(ship, Vector3(7.0, 5.0, 9.0), Vector3(0, 3.0, -26.0), Vector3.ZERO, hull * 0.9, "Nose")
+	_box(ship, Vector3(5.0, 2.6, 4.0), Vector3(0, 5.4, -24.0), Vector3.ZERO, accent * 0.5, "Canopy")
+	# container racks down the spine
+	for i in 3:
+		var z := -8.0 + i * 11.0
+		_box(ship, Vector3(13.0, 5.0, 9.0), Vector3(0, 5.2, z), Vector3.ZERO, hull * 0.75)
+	for side in [-1.0, 1.0]:
+		_box(ship, Vector3(4.0, 9.0, 14.0), Vector3(side * 7.5, -1.0, 16.0), Vector3.ZERO, hull * 0.8)
+		_cyl(ship, 2.4, 5.0, Vector3(side * 7.5, -1.0, 24.5), accent)
+	_cyl(ship, 2.8, 5.0, Vector3(0, 0.5, 24.5), accent)
+	var hp: Array[Vector3] = [Vector3(0, 0, -24.0)]
 	return hp
 
 static func _mat(c: Color) -> StandardMaterial3D:

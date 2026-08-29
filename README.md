@@ -11,12 +11,21 @@ Interceptor**.
 music, factions or hardware. The design is free to clone; the setting is ours.
 See `docs/DESIGN.md`.
 
-## Status — M0: flight feel
+## Status — M1: the mission system
 
-M0 answers exactly one question: *does flying this feel right?* It is a feel test,
-not a game. There is no mission system yet — that is M1, and it is the piece that
-decides whether the project survives past mission four, so it gets built properly
-rather than smuggled into the prototype.
+M0 (flight feel) passed: the handling was judged X-Wing-like, so the flight model
+is settled and work from here is refinement, not re-architecture.
+
+M1 makes missions **data**. A mission is a `.tres` file — flights, arrival
+triggers, orders, waypoints and goals — loaded by `MissionRunner`, which knows
+nothing about any particular mission. Adding mission thirty means adding a file.
+
+Two missions ship with it:
+
+1. **Sweep at Tessaly Reach** — patrol intercept. A loitering raider pair, then a
+   relief flight that jumps in *because* you killed the first one.
+2. **Convoy out of Halgren** — escort. An unarmed hauler that cannot manoeuvre or
+   run, a picket already waiting, and an ambush triggered by where *you* fly.
 
 Working now:
 
@@ -27,7 +36,14 @@ Working now:
 - Cockpit view with a framed canopy, and an external chase view
 - HUD: gunsight, lead pipper, target bracket, off-screen arrow, CMD target panel,
   fore/aft radar hemispheres, power pips, shields, throttle
-- Three AI interceptors flying a real attack cycle: pursue → attack → break → extend
+- AI flying a real attack cycle: pursue → attack → break → extend
+- Mission orders that change behaviour: PATROL breaks off to investigate, ATTACK
+  hunts an assigned flight, ESCORT flies formation on its charge, GOTO flies the
+  route through a dogfight and jumps out at the end
+- Arrival triggers: at start, after a delay, when a flight dies, when a flight
+  arrives, or when the player crosses a point
+- Goals: destroy, protect, see-them-depart, reach-a-point, survive
+- Briefing and debrief screens, and a live objectives list in the cockpit
 - Live tuning panel (F3) for every flight number, changeable while you fly
 
 ## Running it
@@ -57,7 +73,9 @@ Or open the folder in Godot 4.7 and press F5.
 | `R` `T` `G` | target nearest / cycle / whatever is in the gunsight |
 | F1 F2 | cockpit / chase view |
 | F3 | flight tuning panel |
-| F5 | reset the engagement |
+| Space | launch from briefing / fly again from debrief |
+| N | next mission (debrief only) |
+| F5 | restart the mission |
 | Esc | quit |
 
 ### Gamepad (Xbox layout)
@@ -111,14 +129,23 @@ break-and-extend cycle was debugged, and it is the regression test for M1.
 
 Add `--seed=N` to sample a different fight; the same seed always replays the same
 one. Screenshots for review: add `--shot=/path/to.png --shot-after=SECONDS`, and
-`--chase` to boot into the external view.
+`--chase` to boot into the external view, `--mission=2` to pick one, `--nobrief`
+to skip the briefing.
+
+## Writing a mission
+
+Missions are Godot resources, so the inspector *is* the mission editor: open a
+`.tres` under `data/missions/` and every order and trigger is a typed dropdown.
+`tools/build_missions.gd` regenerates the two shipped missions from code if you
+ever need canonical files again:
+
+```bash
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script tools/build_missions.gd
+```
 
 ## Next
 
-1. **M1 — the mission system.** Data-driven: craft lists, waypoints, arrival and
-   departure triggers, orders (attack / escort / inspect / disable) and goals, all
-   loaded from mission files. Missions become content, not code.
-2. Torpedoes with a lock-on delay, and subsystem targeting.
+1. Torpedoes with a lock-on delay, and subsystem targeting.
 3. Capital ships: multiple hardpoints, turrets, large-object collision.
 4. Real art through the Blender pipeline, replacing the procedural blockouts.
 5. An input binding screen.

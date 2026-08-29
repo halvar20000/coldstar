@@ -11,17 +11,25 @@ var seconds := 90.0
 var _t := 0.0
 var _shots := 0
 var _start_hostiles := 0
-var _kill_times: Array[float] = []
 var _first_damage_at := -1.0
 
 var verbose := false
+var runner: MissionRunner = null
 
-func start(p: PlayerShip, dur: float, p_verbose := false, rng_seed := 1) -> void:
+func start(p: PlayerShip, dur: float, p_verbose := false, rng_seed := 1, p_runner: MissionRunner = null) -> void:
 	# Deterministic: the AI jitters and picks break vectors with randf(), so an
 	# unseeded run reports a different kill count every time and is worthless as
 	# a regression test. Vary --seed to sample different fights.
 	seed(rng_seed)
+	# Run the sim faster than real time without changing the physics step: four
+	# times the ticks, four times the clock, same 1/60 s delta the game uses.
+	Engine.physics_ticks_per_second = 240
+	Engine.time_scale = 4.0
+	# The mission end pauses the tree for the debrief screen; the test has to
+	# keep running through that or it never gets to report.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	player = p
+	runner = p_runner
 	player.autopilot = true
 	seconds = dur
 	verbose = p_verbose
@@ -36,9 +44,11 @@ func _physics_process(dt: float) -> void:
 		_report("player destroyed")
 		return
 	var live := Combat.enemies_of(player.faction)
-	while _kill_times.size() < _start_hostiles - live.size():
-		_kill_times.append(_t)
-	if live.is_empty():
+	# With a mission loaded the runner decides when it is over, not the body count.
+	if runner != null and runner.state != MissionRunner.State.FLYING:
+		_report("mission %s" % ["FLYING", "COMPLETE", "FAILED"][runner.state])
+		return
+	if runner == null and live.is_empty():
 		_report("all hostiles destroyed")
 		return
 	if _t >= seconds:
@@ -51,6 +61,10 @@ func _physics_process(dt: float) -> void:
 	# Autopilot: nearest hostile, lead pursuit, fire inside the gun envelope.
 	var tgt: Ship = null
 	var best := INF
+	if live.is_empty():
+		# Nothing to shoot: hold course so time-based goals can still run out.
+		player.throttle_input = 0.6
+		return
 	for s in live:
 		var d := player.global_position.distance_to(s.global_position)
 		if d < best:
@@ -91,8 +105,6 @@ func _trace() -> void:
 func _report(reason: String) -> void:
 	var live := Combat.enemies_of(player.faction).size() if is_instance_valid(player) else -1
 	print("--- selftest: %s at %.1fs ---" % [reason, _t])
-	print("kills            : %d of %d  (times: %s)" % [_kill_times.size(), _start_hostiles,
-		", ".join(_kill_times.map(func(x: float) -> String: return "%.1fs" % x))])
 	print("hostiles left    : %d" % live)
 	if is_instance_valid(player):
 		print("player hull      : %.0f / %.0f" % [player.hull, player.profile.hull_max])
@@ -101,5 +113,9 @@ func _report(reason: String) -> void:
 		print("speed            : %.0f m/s" % player.flight.speed)
 		print("distance from 0  : %.0f m" % player.global_position.length())
 	print("shots fired      : %d" % _shots)
+	if runner != null:
+		print("mission          : %s" % runner.mission.title)
+		print(runner.group_report())
+		print(runner.summary())
 	print("first hit taken  : %s" % ("%.1fs" % _first_damage_at if _first_damage_at >= 0.0 else "never"))
 	get_tree().quit()

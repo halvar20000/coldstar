@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="Mission" format=3]
+
+[ext_resource type="Script" path="res://scripts/mission/mission_goal.gd" id="1_baanp"]
+[ext_resource type="Script" path="res://scripts/mission/craft_group.gd" id="2_k3v87"]
+[ext_resource type="Resource" path="res://data/vex.tres" id="3_ubdn7"]
+[ext_resource type="Resource" path="res://data/lancet.tres" id="4_ioyb2"]
+[ext_resource type="Script" path="res://scripts/mission/mission.gd" id="5_gkyx6"]
+
+[sub_resource type="Resource" id="Resource_i0y2v"]
+script = ExtResource("1_baanp")
+text = "Destroy the raider patrol"
+group_id = "raiders"
+
+[sub_resource type="Resource" id="Resource_giemr"]
+script = ExtResource("1_baanp")
+text = "Destroy the relief flight"
+group_id = "relief"
+
+[sub_resource type="Resource" id="Resource_jpc00"]
+script = ExtResource("2_k3v87")
+id = "raiders"
+profile = ExtResource("3_ubdn7")
+count = 2
+skill = 0.5
+spawn_point = Vector3(200, 80, -1800)
+waypoints = Array[Vector3]([Vector3(-900, 120, -2400), Vector3(900, -160, -1200), Vector3(0, 0, -2000)])
+
+[sub_resource type="Resource" id="Resource_vd3ja"]
+script = ExtResource("2_k3v87")
+id = "relief"
+profile = ExtResource("3_ubdn7")
+count = 2
+spawn_point = Vector3(-1500, -300, -3400)
+arrival = 2
+arrival_group = "raiders"
+order = 2
+order_target = "player"
+
+[resource]
+script = ExtResource("5_gkyx6")
+title = "Sweep at Tessaly Reach"
+subtitle = "Accord patrol — single Lancet"
+briefing = "Dominion raiders have been hitting ore convoys along the Reach.
+Fly the picket line and clear anything hostile you find.
+
+Two Vex interceptors are already loitering at the first waypoint.
+Expect a second flight once the first is dealt with — they run
+their reliefs on a fixed rotation, and we intend to use that.
+
+Watch your laser recharge. Out here nobody is coming to help you."
+player_profile = ExtResource("4_ioyb2")
+player_start = Vector3(0, 0, 1200)
+player_facing = Vector3(0, 0, -2000)
+groups = Array[ExtResource("2_k3v87")]([SubResource("Resource_jpc00"), SubResource("Resource_vd3ja")])
+goals = Array[ExtResource("1_baanp")]([SubResource("Resource_i0y2v"), SubResource("Resource_giemr")])

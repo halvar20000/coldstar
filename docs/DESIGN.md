@@ -35,6 +35,24 @@ to misconfigure, and it is deterministic enough to test headless.
 axis indices and device order differ across macOS, Linux and Windows, so bindings
 must live in data we can rewrite. `scripts/input_setup.gd` is the single source.
 
+## M1: missions as data
+
+`MissionRunner` reads a `Mission` resource and knows nothing about any specific
+mission. A mission owns `CraftGroup`s (what flies, when it arrives, what it was
+told to do) and `MissionGoal`s (what counts as winning). Orders change AI
+behaviour rather than adding AI code: PATROL investigates, ATTACK hunts a named
+flight, ESCORT flies formation on its charge, GOTO flies the route through a
+dogfight and jumps out.
+
+Departing is deliberately not the same as dying. A hauler that reaches its jump
+point increments `departed`, not `destroyed`, and the player sees a blue streak
+rather than a fireball — because "they made it" and "they died" must never look
+alike.
+
+Missions are Godot resources rather than JSON so the inspector is the mission
+editor from day one: typed dropdowns for orders and triggers, no separate tool,
+and a typo becomes a compile-time impossibility instead of a runtime bug.
+
 ## Architecture
 
 ```
@@ -49,6 +67,9 @@ ShipProfile (.tres)   every number that decides feel; tunable live in F3
 ShipFactory           procedural hulls, to be replaced by Blender assets
 Cockpit / HUD         canopy frame, instruments
 SelfTest              headless autopilot that proves the combat loop
+Mission / CraftGroup / MissionGoal   mission data (.tres)
+MissionRunner         spawning, arrival triggers, goal evaluation, mission end
+BriefingScreen        pre-flight briefing and post-flight debrief
 ```
 
 Player and AI fly the *same* `FlightController` with the same profile limits. The

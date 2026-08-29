@@ -31,6 +31,16 @@ pipeline starts.
   Authoring it in ship space put struts 2 m wide across the middle of the screen.
 - **Input events injected in the first ~10 frames after boot are dropped.** The
   pad test warms up before testing, or the first checks fail for no reason.
+- **The briefing and debrief pause the tree.** Anything that must keep running
+  through them (Main, SelfTest, PadTest) needs
+  `process_mode = Node.PROCESS_MODE_ALWAYS`, or a headless test hangs forever at
+  the moment the mission ends.
+- **A goal that can only fail must not count as pending work** in
+  `MissionRunner._check_end`, or a mission that hinges on keeping something alive
+  can never reach "all objectives met". PROTECT_GROUP is the case.
+- SelfTest runs the sim at 4x by raising `physics_ticks_per_second` to 240 *and*
+  `time_scale` to 4 together, which keeps the 1/60 s delta the game actually uses.
+  Changing only time_scale would change the physics step and the results with it.
 - Headless runs render nothing, so `_draw` bugs will not show up there. Take a
   screenshot with `--shot=` to check anything visual.
 

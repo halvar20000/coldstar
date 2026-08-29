@@ -22,6 +22,9 @@ var shield_aft := 0.0
 var laser_energy := 100.0
 var link: Link = Link.DUAL
 var dead := false
+## Set by MissionRunner so orders can name a flight ("attack the raiders").
+var group_id := ""
+var last_attacker: Node3D = null
 
 ## -1 = all recharge to aft, 0 = balanced, +1 = all to fore.
 var shield_bias := 0.0
@@ -113,9 +116,10 @@ func fire() -> void:
 		var muzzle := global_transform * hp
 		Combat.spawn_bolt(get_parent(), muzzle, (aim - muzzle).normalized(), self)
 
-func take_hit(amount: float, from_world: Vector3, _shooter: Node3D) -> void:
+func take_hit(amount: float, from_world: Vector3, shooter: Node3D) -> void:
 	if dead:
 		return
+	last_attacker = shooter
 	var local := global_transform.affine_inverse() * from_world
 	var from_fore := local.z < 0.0     # -Z is forward
 	var left := amount

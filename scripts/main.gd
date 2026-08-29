@@ -1,33 +1,54 @@
 extends Node3D
-## M0 scenario: one Lancet, three Vex interceptors, empty space. No mission
-## system yet — that is M1, and it is the piece that decides whether this
-## project survives past mission four, so it gets built properly rather than
-## smuggled in here.
+## Hosts the world and runs whichever Mission is loaded. The M0 scenario is gone:
+## everything that used to be hardcoded here now lives in a .tres under
+## data/missions, which is the point of M1.
 
-const PLAYER_PROFILE := preload("res://data/lancet.tres")
-const ENEMY_PROFILE := preload("res://data/vex.tres")
-const ENEMY_COUNT := 3
+const MISSIONS := [
+	"res://data/missions/01_intercept.tres",
+	"res://data/missions/02_escort.tres",
+]
 
+var mission: Mission
+var mission_index := 0
+var runner: MissionRunner
 var player: PlayerShip
 var hud: HUD
 var cockpit: Cockpit
 var chase_cam: Camera3D
 var tuning: TuningPanel
-var _cockpit_view := true
+var briefing: BriefingScreen
+var starfield: Starfield
+var ui_layer: CanvasLayer
 
+var _cockpit_view := true
 var _shot_path := ""
+var _shot_after := 2.5
+var _shot_taken := false
 var _boot_chase := false
 var _selftest_seconds := 0.0
 var _verbose := false
 var _seed := 1
 var _padtest := false
-var _shot_after := 2.5
-var _shot_taken := false
+var _skip_briefing := false
 
 func _ready() -> void:
+	# The briefing and debrief pause the tree, so Main itself must keep
+	# processing — otherwise nothing can drive the screen that unpauses it.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_parse_cmdline()
 	_build_environment()
-	_spawn_scenario()
+	ui_layer = CanvasLayer.new()
+	add_child(ui_layer)
+	briefing = BriefingScreen.new()
+	ui_layer.add_child(briefing)
+	briefing.launch_requested.connect(_launch)
+	briefing.next_mission_requested.connect(_next_mission)
+	_load_mission(mission_index)
+	if _skip_briefing:
+		_launch()
+	else:
+		get_tree().paused = true
+		briefing.show_briefing(mission)
 
 func _parse_cmdline() -> void:
 	for a in OS.get_cmdline_user_args():
@@ -38,13 +59,26 @@ func _parse_cmdline() -> void:
 		elif a == "--chase":
 			_boot_chase = true
 		elif a.begins_with("--selftest"):
-			_selftest_seconds = float(a.split("=")[-1]) if "=" in a else 90.0
+			_selftest_seconds = float(a.split("=")[-1]) if "=" in a else 180.0
+			_skip_briefing = true
 		elif a == "--verbose":
 			_verbose = true
 		elif a == "--padtest":
 			_padtest = true
+			_skip_briefing = true
 		elif a.begins_with("--seed="):
 			_seed = int(a.split("=")[-1])
+		elif a.begins_with("--mission="):
+			var v := a.split("=")[-1]
+			mission_index = int(v) - 1 if v.is_valid_int() else 0
+		elif a == "--nobrief":
+			_skip_briefing = true
+
+func _load_mission(index: int) -> void:
+	mission_index = clampi(index, 0, MISSIONS.size() - 1)
+	mission = load(MISSIONS[mission_index]) as Mission
+
+# --- world ---------------------------------------------------------------
 
 func _build_environment() -> void:
 	var env := Environment.new()
@@ -89,9 +123,9 @@ func _build_environment() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 424242
 	for i in mm.instance_count:
-		var pos := Vector3(rng.randf_range(-2500, 2500), rng.randf_range(-900, 900), rng.randf_range(-2500, 2500))
+		var pos := Vector3(rng.randf_range(-3000, 3000), rng.randf_range(-900, 900), rng.randf_range(-3000, 3000))
 		var b := Basis.from_euler(Vector3(rng.randf() * TAU, rng.randf() * TAU, rng.randf() * TAU))
-		var s := rng.randf_range(6.0, 34.0)
+		var s := rng.randf_range(6.0, 30.0)
 		mm.set_instance_transform(i, Transform3D(b.scaled(Vector3(s, s * 0.8, s * 1.2)), pos))
 	debris.multimesh = mm
 	var rmat := StandardMaterial3D.new()
@@ -100,65 +134,79 @@ func _build_environment() -> void:
 	debris.material_override = rmat
 	add_child(debris)
 
-func _spawn_scenario() -> void:
-	player = PlayerShip.new()
-	player.name = "Player"
-	add_child(player)
-	player.setup(PLAYER_PROFILE.duplicate(true))
-	player.throttle_input = 0.66
-	player.flight.speed = player.flight.max_speed() * 0.66
-	player.damaged.connect(_on_player_damaged)
-	player.destroyed.connect(_on_player_destroyed)
+# --- flight --------------------------------------------------------------
 
-	var starfield := Starfield.new()
+func _launch() -> void:
+	_teardown()
+	get_tree().paused = false
+	briefing.visible = false
+
+	runner = MissionRunner.new()
+	runner.name = "MissionRunner"
+	add_child(runner)
+	player = runner.setup(mission, self)
+	runner.state_changed.connect(_on_mission_ended)
+	runner.announce.connect(func(text: String, secs: float) -> void: hud.message(text, secs))
+	player.damaged.connect(func(_s, _a, _f) -> void: hud.flash_damage())
+
+	starfield = Starfield.new()
 	add_child(starfield)
 	starfield.setup(player)
 
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 7
-	for i in ENEMY_COUNT:
-		var e := AIFighter.new()
-		e.name = "Vex%d" % (i + 1)
-		add_child(e)
-		e.setup(ENEMY_PROFILE.duplicate(true))
-		e.skill = 0.45 + 0.2 * i
-		e.global_position = Vector3(rng.randf_range(-400, 400), rng.randf_range(-200, 200), -2400.0 - i * 260.0)
-		e.look_at(player.global_position, Vector3.UP)
-		e.flight.throttle = 1.0
-		e.flight.speed = e.profile.rated_speed
-
 	cockpit = Cockpit.new()
 	cockpit.setup(player)
-
 	chase_cam = Camera3D.new()
+	chase_cam.name = "ChaseCam"
 	chase_cam.fov = 70.0
 	chase_cam.far = 30000.0
 	add_child(chase_cam)
 
-	var layer := CanvasLayer.new()
-	add_child(layer)
 	hud = HUD.new()
 	hud.player = player
-	layer.add_child(hud)
+	hud.runner = runner
+	ui_layer.add_child(hud)
+	ui_layer.move_child(briefing, ui_layer.get_child_count() - 1)
 	tuning = TuningPanel.new()
-	layer.add_child(tuning)
+	ui_layer.add_child(tuning)
 	tuning.setup(player)
+
+	_set_view(not _boot_chase)
+	hud.message(mission.title.to_upper(), 3.0)
 
 	if _padtest:
 		var pt := PadTest.new()
 		add_child(pt)
 		pt.run(player)
-
 	if _selftest_seconds > 0.0:
 		var st := SelfTest.new()
 		add_child(st)
-		st.start(player, _selftest_seconds, _verbose, _seed)
+		st.start(player, _selftest_seconds, _verbose, _seed, runner)
 
-	_set_view(not _boot_chase)
-	hud.message("THREE DOMINION INTERCEPTORS INBOUND", 4.0)
+func _teardown() -> void:
+	for s in Combat.ships.duplicate():
+		if is_instance_valid(s):
+			s.queue_free()
+	Combat.clear()
+	for node in [runner, starfield, chase_cam, hud, tuning]:
+		if is_instance_valid(node):
+			node.queue_free()
+	runner = null
+	starfield = null
+	chase_cam = null
+	hud = null
+	tuning = null
+
+func _on_mission_ended(state: MissionRunner.State) -> void:
+	get_tree().paused = true
+	briefing.show_debrief(mission, state == MissionRunner.State.COMPLETE)
+
+func _next_mission() -> void:
+	_load_mission((mission_index + 1) % MISSIONS.size())
+	get_tree().paused = true
+	briefing.show_briefing(mission)
 
 func _process(dt: float) -> void:
-	if is_instance_valid(player) and not player.dead:
+	if is_instance_valid(player) and not player.dead and is_instance_valid(chase_cam):
 		_update_chase(dt)
 	if _shot_path != "" and not _shot_taken:
 		_shot_after -= dt
@@ -180,7 +228,11 @@ func _update_chase(dt: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not event.is_pressed() or event.is_echo():
 		return
-	if event.is_action("view_cockpit"):
+	if event.is_action("quit"):
+		get_tree().quit()
+	elif briefing.visible:
+		return
+	elif event.is_action("view_cockpit"):
 		_set_view(true)
 	elif event.is_action("view_chase"):
 		_set_view(false)
@@ -189,9 +241,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action("view_tuning"):
 		tuning.visible = not tuning.visible
 	elif event.is_action("scenario_reset"):
-		_reset()
-	elif event.is_action("quit"):
-		get_tree().quit()
+		_launch()
 
 func _set_view(cockpit_view: bool) -> void:
 	_cockpit_view = cockpit_view
@@ -201,20 +251,3 @@ func _set_view(cockpit_view: bool) -> void:
 	else:
 		chase_cam.make_current()
 		hud.camera = chase_cam
-
-func _on_player_damaged(_s: Ship, _amount: float, _fore: bool) -> void:
-	hud.flash_damage()
-
-func _on_player_destroyed(_s: Ship) -> void:
-	hud.message("", 0.0)
-
-func _reset() -> void:
-	for s in Combat.ships.duplicate():
-		if is_instance_valid(s):
-			s.queue_free()
-	Combat.clear()
-	for child in get_children():
-		if child is Starfield or child is CanvasLayer or child is Camera3D:
-			child.queue_free()
-	await get_tree().process_frame
-	_spawn_scenario()
