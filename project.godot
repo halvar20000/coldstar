@@ -1,0 +1,29 @@
+; Coldstar - M0 flight-feel test
+; Engine configuration file. Edited by hand; safe to open in the editor.
+
+config_version=5
+
+[application]
+
+config/name="Coldstar"
+config/description="Original-setting space combat sim in the 1993 X-Wing tradition. M0: flight feel."
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.4", "Forward Plus")
+boot_splash/show_image=false
+
+[autoload]
+
+InputSetup="*res://scripts/input_setup.gd"
+Combat="*res://scripts/combat.gd"
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=900
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[rendering]
+
+environment/defaults/default_clear_color=Color(0.01, 0.012, 0.02, 1)
+anti_aliasing/quality/msaa_3d=2

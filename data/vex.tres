@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="ShipProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ship_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+display_name = "Vex Interceptor"
+faction = "dominion"
+silhouette = "vex"
+rated_speed = 165.0
+throttle_accel = 70.0
+throttle_decel = 80.0
+pitch_rate = 76.0
+yaw_rate = 34.0
+roll_rate = 140.0
+control_response = 5.5
+inertia_response = 7.0
+hull_max = 55.0
+shield_max = 0.0
+shield_recharge = 0.0
+hit_radius = 11.0
+cannon_count = 2
+laser_capacity = 60.0
+laser_recharge = 9.0
+laser_cost = 6.0
+laser_damage = 7.0
+bolt_speed = 900.0
+bolt_life = 2.0
+convergence = 450.0

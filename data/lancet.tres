@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="ShipProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ship_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+display_name = "AF-4 Lancet"
+faction = "accord"
+silhouette = "lancet"
+rated_speed = 140.0
+throttle_accel = 55.0
+throttle_decel = 70.0
+pitch_rate = 88.0
+yaw_rate = 34.0
+roll_rate = 165.0
+control_response = 5.0
+inertia_response = 6.0
+hull_max = 120.0
+shield_max = 100.0
+shield_recharge = 7.0
+hit_radius = 11.0
+cannon_count = 4
+laser_capacity = 100.0
+laser_recharge = 11.0
+laser_cost = 6.0
+laser_damage = 9.0
+bolt_speed = 900.0
+bolt_life = 2.2
+convergence = 500.0
